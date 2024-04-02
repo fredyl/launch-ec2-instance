@@ -10,6 +10,7 @@ resource "aws_s3_bucket" "terraform_state" {
   # Add any required configurations like versioning or encryption here
 }
 
+
 # store the terraform state file in s3
 terraform {
   backend "s3" {
