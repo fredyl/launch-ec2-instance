@@ -8,7 +8,7 @@ provider "aws" {
 # store the terraform state file in s3
 terraform {
   backend "s3" {
-    bucket  = "fredy-terraform-state-bucket"
+    bucket  = "fredylaur-terraform-state-bucket"
     key     = "build/terraform.tfstate"
     region  = "us-west-2"
     profile = "default"
