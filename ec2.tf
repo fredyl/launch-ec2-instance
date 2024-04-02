@@ -4,11 +4,16 @@ provider "aws" {
   profile = "default"
 }
 
+#create s3 bucket
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "fredy-terraform-state-bucket"
+  # Add any required configurations like versioning or encryption here
+}
 
 # store the terraform state file in s3
 terraform {
   backend "s3" {
-    bucket  = "fredyl123-terraform-state-bucket"
+    bucket  = "fredy-terraform-state-bucket"
     key     = "build/terraform.tfstate"
     region  = "us-west-2"
     profile = "default"
