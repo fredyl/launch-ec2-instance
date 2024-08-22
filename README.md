@@ -293,3 +293,24 @@ class  PowerBIApiData:
                         print("no groups")
         except Exception as e:
             print(f"An error Occured:{str(e)}")
+
+
+ValueError: Unable to get authority configuration for https://login.microsoftonline.com/[REDACTED]. Authority would typically be in a format of https://login.microsoftonline.com/your_tenant or https://tenant_name.ciamlogin.com or https://tenant_name.b2clogin.com/tenant.onmicrosoft.com/policy.  Also please double check your tenant name or GUID is correct.
+File /databricks/python/lib/python3.10/site-packages/msal/authority.py:79, in Authority.__init__(self, authority_url, http_client, validate_authority, instance_discovery, oidc_authority_url)
+     78 try:
+---> 79     openid_config = tenant_discovery(
+     80         tenant_discovery_endpoint,
+     81         self._http_client)
+     82 except ValueError:
+File /databricks/python/lib/python3.10/site-packages/msal/authority.py:95, in Authority.__init__(self, authority_url, http_client, validate_authority, instance_discovery, oidc_authority_url)
+     82 except ValueError:
+     83     error_message = (
+     84         "Unable to get OIDC authority configuration for {url} "
+     85         "because its OIDC Discovery endpoint is unavailable at "
+   (...)
+     93         .format(authority_url)
+     94         ) + " Also please double check your tenant name or GUID is correct."
+---> 95     raise ValueError(error_message)
+     96 logger.debug(
+     97     'openid_config("%s") = %s', tenant_discovery_endpoint, openid_config)
+     98 self.authorization_endpoint = openid_config['authorization_endpoint']
