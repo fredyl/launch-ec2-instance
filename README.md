@@ -1,3 +1,21 @@
-Calling API for item ID: 0867a2eb-5a7f-4299-8b08-55dedc246b6c
-print api endpoint groups/88ae33af-704f-427f-9469-a09c51e2ddc0/datasets/0867a2eb-5a7f-4299-8b08-55dedc246b6c/refreshes
-API call failed with Error: Request failed with status 429,Response: {"message":"You have exceeded the amount of requests allowed in the current time frame and further requests will fail. Retry in 8 seconds."}
+dataset_ids_dict = get_Item_ids_for_all_groups(access_token, group_ids, "dataflows", "id")
+    
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "68f7d43a-c5b1-45bf-a559-d35fa3361a62": [
+    null
+call_power_bi_api_for_all_data(access_token, dataset_ids_dict, "transactions", "dataflows")
+
+processing group id : 97b99d50-bc67-4e69-84d3-1c78e0c7db21
+Type of item_ids: <class 'list'>
+Calling API for item ID: None
+Exception: API response must be a list, but got type <class 'NoneType'>
