@@ -1,21 +1,6 @@
-dataset_ids_dict = get_Item_ids_for_all_groups(access_token, group_ids, "dataflows", "id")
-    
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null
-  ],
-  "68f7d43a-c5b1-45bf-a559-d35fa3361a62": [
-    null
-call_power_bi_api_for_all_data(access_token, dataset_ids_dict, "transactions", "dataflows")
-
-processing group id : 97b99d50-bc67-4e69-84d3-1c78e0c7db21
-Type of item_ids: <class 'list'>
-Calling API for item ID: None
-Exception: API response must be a list, but got type <class 'NoneType'>
+ "e26b065e-851e-4fc4-95da-4600e0f52423": [],
+  "3b1b45fe-32cd-4bbb-afa8-005c505e6f6a": [],
+  "9b884ac0-d5bb-41a2-9c35-32f2a47e004b": [],
+  "db79f37e-9671-41e2-af91-3f3c751e073d": [],
+  "ec213eaf-884c-4a3c-801b-8b30459b42a8": [],
+  "c65fee01-7286-4477-b54f-e9aafaf71b40": [],
