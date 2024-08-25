@@ -1,4 +1,34 @@
-Headers ['endTime', 'refreshType', 'startTime', 'status', 'id', 'serviceExceptionJson', 'refreshAttempts', 'requestId']
-Rows created : {'endTime': '2020-03-01T10:44:35.373Z', 'refreshType': 'OnDemand', 'startTime': '2020-03-01T10:43:31.74Z', 'status': 'Failed', 'id': 7553804, 'serviceExceptionJson': '{"errorCode":"ModelRefresh_ShortMessage_ProcessingError","errorDescription":"The credentials provided for the Dynamics365BusinessCentral source are invalid. (Source at Dynamics365BusinessCentral.) Table: ItemSalesByCustomer."}', 'refreshAttempts': [], 'requestId': 'ab530d1e-d2da-2a90-7021-3b6967dd034e'}
-Rows created : {'endTime': '2020-08-02T15:03:12.783Z', 'refreshType': 'Scheduled', 'startTime': '2020-08-02T15:03:12.783Z', 'status': 'Disabled', 'id': 7553938, 'serviceExceptionJson': None, 'refreshAttempts': [], 'requestId': '1f5a023f-0f28-47f4-b565-39f3b5e39e02'}
-Rows created : {'endTime': '2020-08-01T15:14:10.953Z', 'refreshType': 'Scheduled', 'startTime': '2020-08-01T15:03:16.54Z', 'status': 'Completed', 'id': 7553937, 'serviceExceptionJson': None, 'refreshAttempts': [], 'requestId': 'f0b9f5e0-779b-4a9f-b2c3-2a611d43eee7'}
+ef get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key):
+    """
+    Retrieves all Specific item id's (e.g dataset,dataflow) for each group id
+    and creates a dictionatory that maps  group IDs to a list of item IDs ( e.g Dataset and Dataflow).
+    """
+    all_items_id = {}
+
+    for group_id in group_ids:
+        # print(f"fetching {api_name}  IDs for group ID: {group_id}")
+        endpoint = f"groups/{group_id}/{api_name}"
+        items = call_powerbi_api(access_token, endpoint)
+
+        if not isinstance(items, list):
+            raise Exception("API response must be a list, but got type {type(items)} for group id {group_id}")
+
+        #Extract the item IDs and store in a dictionary
+        # print(json.dumps(items, indent=2))
+        items_ids = [item.get(id_key) for item in items]
+        # for item in items:
+        #     item_id = item.get('id_key')
+        #     if item_id is not None:
+        #         items_ids.append(item_id)
+        #     else:
+        #         print(f"Skipping item with no id for group id {group_id}")
+
+        # [item.get(id_key) for item in items]
+
+        all_items_id[group_id] = items_ids
+
+    
+    print(json.dumps(all_items_id, indent=2))
+    return all_items_id
+    
+    
