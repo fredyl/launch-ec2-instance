@@ -1,17 +1,41 @@
-19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}, {'group_id': 'f014186c-db9b-4c49-969b-96ad307adecf', 'id': 'dadb599e-c331-4209-8f4d-51257f94d792', 'name': 'AutoMeasure (Test Tier)', 'webUrl': 'https://app.powerbi.com/groups/f014186c-db9b-4c49-969b-96ad307adecf/datasets/dadb599e-c331-4209-8f4d-51257f94d792', 'addRowsAPIEnabled': False, 'configuredBy': 'jgary@Trugreenmail.Com', 'isRefreshable': True, 'isEffectiveIdentityRequired': False, 'isEffectiveIdentityRolesRequired': False, 'isOnPremGatewayRequired': True, 'targetStorageMode': 'Abf', 'createdDate': '2024-05-16T19:53:09.96Z', 'createReportEmbedURL': 'https://app.powerbi.com/reportEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}]
+def create_or_update_table(headers, rows, table_name,primary_key_columns):
+ 
+    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+        raise ValueError(f"expected rows to be a list of dicts")
 
-    
-for group_id, items in full_json_data.items():
-        for item in items:
-            if isinstance(item, dict):
-                flattened_item = {"group_id": group_id}
-                for key, value in item.items():
-                    if isinstance(value, dict):
-                        flattened_item.update({f"{key}.{k}": v for k, v in value.items()})
-                    else:
-                        flattened_item[key] = str(value) if isinstance(value, list) else value
-                flat_data.append(flattened_item)
-                
+    schema = StructType([StructField(header, StringType(), True) for header in headers])
+    df = spark.createDataFrame([tuple(row.values()) for row in rows], schema)
+
+    if spark._jsparkSession.catalog().tableExists(table_name):
+        print(f"Table {table_name} exists, updating")
+
+        existing_df = spark.table(table_name)
+        df.createOrReplaceGlobalTempView('new_data')
+        
+        merge_condition = ""
+        for col in primary_key_columns:
+            if merge_condition != "":
+                merge_condition += " AND "
+            merge_condition += "t." + col + " = n." + col
+
+        merge_query = f"""
+        MERGE INTO {table_name} AS t
+        USING new_data AS n
+        ON {merge_condition}
+        WHEN MATCHED THEN 
+        UPDATE SET *
+        WHEN NOT MATCHED
+         THEN INSERT *
+        """
+
+    else:
+        print(f"Table {table_name} does not exist, creating")
+        df.write.format("delta").saveAsTable(table_name)
+
+    if not spark._jsparkSession.catalog().tableExists(table_name):
+        raise ValueError(f"Table {table_name} could not be created")
+
+
 
 def call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type):
     """
