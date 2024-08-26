@@ -1,6 +1,19 @@
-eb3-968b-6bb6d7e791be', 'name': '_DataHub Import Model _Dev (UAT) - vs Plan', 'webUrl': 'https://app.powerbi.com/groups/485c3f61-5ecd-4bc1-a96c-cafb637cdb8c/datasets/d03721e5-bc60-4eb3-968b-6bb6d7e791be', 'addRowsAPIEnabled': False, 'configuredBy': 'jconnell01@Trugreenmail.Com', 'isRefreshable': True, 'isEffectiveIdentityRequired': False, 'isEffectiveIdentityRolesRequired': False, 'isOnPremGatewayRequired': False, 'targetStorageMode': 'Abf', 'createdDate': '2024-07-11T04:26:00.33Z', 'createReportEmbedURL': 'https://app.powerbi.com/reportEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}, {'group_id': 'f014186c-db9b-4c49-969b-96ad307adecf', 'id': 'dadb599e-c331-4209-8f4d-51257f94d792', 'name': 'AutoMeasure (Test Tier)', 'webUrl': 'https://app.powerbi.com/groups/f014186c-db9b-4c49-969b-96ad307adecf/datasets/dadb599e-c331-4209-8f4d-51257f94d792', 'addRowsAPIEnabled': False, 'configuredBy': 'jgary@Trugreenmail.Com', 'isRefreshable': True, 'isEffectiveIdentityRequired': False, 'isEffectiveIdentityRolesRequired': False, 'isOnPremGatewayRequired': True, 'targetStorageMode': 'Abf', 'createdDate': '2024-05-16T19:53:09.96Z', 'createReportEmbedURL': 'https://app.powerbi.com/reportEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}]
+print(f"Fetching full JSON data for {api_name} in group ID: {group_id}")
+        endpoint = f"groups/{group_id}/{api_name}"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = requests.get(f"https://api.powerbi.com/v1.0/myorg/{endpoint}", headers=headers)
+
+        if response.status_code == 200:
+            all_items_json[group_id] = response.json().get('value', [])
+        else:
+            raise Exception(f"Failed to retrieve data for group {group_id}: {response.status_code}, {response.text}")
+    
+    return all_items_json
 
 
+
+
+    
 for group_id, items in full_json_data.items():
         for item in items:
             if isinstance(item, dict):
