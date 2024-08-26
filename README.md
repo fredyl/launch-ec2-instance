@@ -1,40 +1,4 @@
-def create_or_update_table(headers, rows, table_name,primary_key_columns):
- 
-    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
-        raise ValueError(f"expected rows to be a list of dicts")
-
-    schema = StructType([StructField(header, StringType(), True) for header in headers])
-    df = spark.createDataFrame([tuple(row.values()) for row in rows], schema)
-
-    if spark._jsparkSession.catalog().tableExists(table_name):
-        print(f"Table {table_name} exists, updating")
-
-        existing_df = spark.table(table_name)
-        df.createOrReplaceGlobalTempView('new_data')
-        
-        merge_condition = ""
-        for col in primary_key_columns:
-            if merge_condition != "":
-                merge_condition += " AND "
-            merge_condition += "t." + col + " = n." + col
-
-        merge_query = f"""
-        MERGE INTO {table_name} AS t
-        USING new_data AS n
-        ON {merge_condition}
-        WHEN MATCHED THEN 
-        UPDATE SET *
-        WHEN NOT MATCHED
-         THEN INSERT *
-        """
-
-    else:
-        print(f"Table {table_name} does not exist, creating")
-        df.write.format("delta").saveAsTable(table_name)
-
-    if not spark._jsparkSession.catalog().tableExists(table_name):
-        raise ValueError(f"Table {table_name} could not be created")
-
+[LENGTH_SHOULD_BE_THE_SAME] obj and fields should be of the same length, got 18 and 8.
 
 
 def call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type):
