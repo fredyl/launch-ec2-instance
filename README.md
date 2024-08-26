@@ -1,5 +1,14 @@
-ValueError: dictionary update sequence element #0 has length 16; 2 is required
-
+for group_id, items in full_json_data.items():
+        for item in items:
+            if isinstance(item, dict):
+                flattened_item = {"group_id": group_id}
+                for key, value in item.items():
+                    if isinstance(value, dict):
+                        flattened_item.update({f"{key}.{k}": v for k, v in value.items()})
+                    else:
+                        flattened_item[key] = str(value) if isinstance(value, list) else value
+                flat_data.append(flattened_item)
+                
 
 def call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type):
     """
