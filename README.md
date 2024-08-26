@@ -1,7 +1,4 @@
-headers = ["id", "name", "addRowsAPIEnabled", "configuredBy", "isRefreshable", "isEffectiveIdentityRequired", "isEffectiveIdentityRolesRequired", "isOnPremGatewayRequired"]
-
-
-
+19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}, {'group_id': 'f014186c-db9b-4c49-969b-96ad307adecf', 'id': 'dadb599e-c331-4209-8f4d-51257f94d792', 'name': 'AutoMeasure (Test Tier)', 'webUrl': 'https://app.powerbi.com/groups/f014186c-db9b-4c49-969b-96ad307adecf/datasets/dadb599e-c331-4209-8f4d-51257f94d792', 'addRowsAPIEnabled': False, 'configuredBy': 'jgary@Trugreenmail.Com', 'isRefreshable': True, 'isEffectiveIdentityRequired': False, 'isEffectiveIdentityRolesRequired': False, 'isOnPremGatewayRequired': True, 'targetStorageMode': 'Abf', 'createdDate': '2024-05-16T19:53:09.96Z', 'createReportEmbedURL': 'https://app.powerbi.com/reportEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'upstreamDatasets': '[]', 'users': '[]', 'queryScaleOutSettings.autoSyncReadOnlyReplicas': True, 'queryScaleOutSettings.maxReadOnlyReplicas': 0}]
 
     
 for group_id, items in full_json_data.items():
