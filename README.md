@@ -1,3 +1,6 @@
+ValueError: dictionary update sequence element #0 has length 16; 2 is required
+
+
 def call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type):
     """
     the function makes a generic API call for each item in each group.
