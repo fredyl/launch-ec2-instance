@@ -1,9 +1,24 @@
-for row in rows:
-        if len(row) != len(headers):
-            missing_keys = set(headers) - set(row.keys())
-            for key in missing_keys:
-                row[key] = None
+Exception: API response must be a list, but got type <class 'NoneType'>
+---------------------------------------------------------------------------
+Exception                                 Traceback (most recent call last)
+File <command-1374540070361322>, line 8
+      1 # test_dict = {"485c3f61-5ecd-4bc1-a96c-cafb637cdb8c": [
+      2 #     "ba83945a-2740-4ca5-880a-cb8469115188",
+      3 #     "3db4ca48-4f34-447a-b2fc-e39d1cff532f",
+   (...)
+      6 #     "d03721e5-bc60-4eb3-968b-6bb6d7e791be"
+      7 #   ],}
+----> 8 all_data = call_power_bi_api_for_all_data(access_token, dataset_ids_dict, "datasources", "datasets")
+      9 print(all_data)
 
+File <command-1374540070361312>, line 19, in call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type)
+     17 print(f"Calling API for item ID: {item_id}")
+     18 if not isinstance(item_id, str):
+---> 19     raise Exception(f"API response must be a list, but got type {type(item_id)}")
+     21 for item_id in item_ids:
+     22     if item_id is None:
+
+Exception: API response must be a list, but got type <class 'NoneType'>
 
 
 def call_power_bi_api_for_all_data(access_token, items_dict, api_name, item_type):
