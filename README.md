@@ -1,38 +1,8 @@
-def create_or_update_table(headers, rows, table_name,primary_key_columns):
- 
-    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
-        raise ValueError(f"expected rows to be a list of dicts")
-
-    schema = StructType([StructField(header, StringType(), True) for header in headers])
-    df = spark.createDataFrame([tuple(row.values()) for row in rows], schema)
-
-    if spark._jsparkSession.catalog().tableExists(table_name):
-        print(f"Table {table_name} exists, updating")
-
-        existing_df = spark.table(table_name)
-        df.createOrReplaceTempView('new_data')
-        
-        merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key_columns])
-        
-
-        merge_query = f"""
-        MERGE INTO {table_name} AS t
-        USING new_data AS n
-        ON {merge_condition}
-        WHEN MATCHED THEN 
-        UPDATE SET *
-        WHEN NOT MATCHED
-         THEN INSERT *
-        """
-
-        spark.sql(merge_query)
-
-    else:
-        print(f"Table {table_name} does not exist, creating")
-        df.write.format("delta").saveAsTable(table_name)
-
-    if not spark._jsparkSession.catalog().tableExists(table_name):
-        raise ValueError(f"Table {table_name} could not be created")
+for row in rows:
+        if len(row) != len(headers):
+            missing_keys = set(headers) - set(row.keys())
+            for key in missing_keys:
+                row[key] = None
 
 
 
