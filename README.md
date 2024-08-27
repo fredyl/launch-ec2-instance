@@ -1,15 +1,31 @@
-def get_Item_ids_for_all_group_json(access_token, group_ids, api_name):
+def create_dataframe_from_json(api_name, group_ids):
+    try:
+        # Step 1: Retrieve JSON data for all groups
+        full_json_data = get_Item_ids_for_all_group_json(access_token, group_ids, api_name)
 
-    all_items_json = {}
-    for group_id in group_ids:
-        # print(f"Fetching full JSON data for {api_name} in group ID: {group_id}") 
-        endpoint = f"groups/{group_id}/{api_name}" 
-        headers = {"Authorization": f"Bearer {access_token}"} 
-        response = requests.get(f"https://api.powerbi.com/v1.0/myorg/{endpoint}", headers=headers)
+        # Step 2: Flatten the JSON data
+        flattened_data = []
+        for group_id, items in full_json_data.items():
+            for item in items:
+                item['group_id'] = group_id  # Add group_id to each item
+                flattened_data.append(item)
 
-        if response.status_code == 200:
-            all_items_json[group_id] = response.json().get('value', [])
+        if flattened_data:
+            # Step 3: Create an RDD from the flattened data
+            data_rdd = spark.sparkContext.parallelize(flattened_data)
+
+            # Step 4: Convert RDD to DataFrame
+            data_df = spark.read.json(data_rdd)
+            data_df.show()
+            return data_df
         else:
-            raise Exception(f"Failed to retrieve data for group {group_id}: {response.status_code}, {response.text}")
-    # print(json.dumps(all_items_json, indent=2))
-    return all_items_json
+            print("No data available to create a DataFrame.")
+            return None
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return None
+
+# Example usage
+api_name = "datasets"  # or "dataflows" depending on what you need
+dataset_df = create_dataframe_from_json(api_name, group_ids)
