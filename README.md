@@ -1,10 +1,1 @@
-An error occurred: An error occurred while calling o377.tableExists. Trace:
-py4j.Py4JException: Method tableExists([class java.lang.String]) does not exist
-	at py4j.reflection.ReflectionEngine.getMethod(ReflectionEngine.java:344)
-	at py4j.reflection.ReflectionEngine.getMethod(ReflectionEngine.java:352)
-	at py4j.Gateway.invoke(Gateway.java:297)
-	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
-	at py4j.commands.CallCommand.execute(CallCommand.java:79)
-	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:199)
-	at py4j.ClientServerConnection.run(ClientServerConnection.java:119)
-	at java.lang.Thread.run(Thread.java:750)
+An error occurred: [DELTA_MERGE_UNRESOLVED_EXPRESSION] Cannot resolve target.objectId in search condition given columns target.name, target.isEffectiveIdentityRolesRequired, target.isOnPremGatewayRequired, target.group_id, target.upstreamDatasets, target.`queryScaleOutSettings.maxReadOnlyReplicas`, target.configuredBy, target.addRowsAPIEnabled, target.description, target.qnaEmbedURL, target.isEffectiveIdentityRequired, target.isRefreshable, target.`queryScaleOutSettings.autoSyncReadOnlyReplicas`, target.webUrl, target.users, target.createdDate, target.id, target.targetStorageMode, target.createReportEmbedURL, source.configuredBy, source.description, source.generation, source.group_id, source.modelUrl, source.name, source.objectId, source.users.; line 4 pos 15
