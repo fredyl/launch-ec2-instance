@@ -1,23 +1,20 @@
-api_name = "datasets"
-full_json_data = get_Item_ids_for_all_group_json(access_token, group_ids, api_name)
-data_df = create_dataframe("datasets", full_json_data)
-table_name = "dev.bronze.pbi_datasets"
-api_name = "datasets"
-primary_keys =["id"]
-create_or_update_table_2( data_df, table_name, primary_keys)
+table_name = "dev.bronze.pbi_reports_page"
+primary_key = ["name"]
+data_ids_dict = get_Item_ids_for_all_groups(access_token, group_ids, "reports", "id")
+all_data = call_power_bi_api_for_all_data(access_token, data_ids_dict, "pages", "reports")
+headers, rows = convert_to_table_structure(all_data)
+create_or_update_table_1(headers,rows,table_name,primary_key)
 
-api_name = "dataflows"
-full_json_data = get_Item_ids_for_all_group_json(access_token, group_ids, api_name)
-data_df = create_dataframe("dataflows", full_json_data)
-table_name = "dev.bronze.pbi_dataflows"
-api_name = "dataflows"
-primary_keys =["objectId"]
-create_or_update_table_2( data_df, table_name, primary_keys)
+table_name = "dev.bronze.pbi_dataflows_datasource"
+primary_key = ["datasourceId"]
+data_ids_dict = get_Item_ids_for_all_groups(access_token, group_ids, "dataflows", "objectId")
+all_data = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datasources", "dataflows")
+headers, rows = convert_to_table_structure(all_data)
+create_or_update_table_1(headers,rows,table_name,primary_key)
 
-api_name = "reports"
-full_json_data = get_Item_ids_for_all_group_json(access_token, group_ids, api_name)
-data_df = create_dataframe("reports", full_json_data)
-table_name = "dev.bronze.pbi_reports"
-api_name = "reports"
-primary_keys =["id"]
-create_or_update_table_2( data_df, table_name, primary_keys)
+table_name = "dev.bronze.pbi_dataset_datasource"
+primary_key = ["datasourceId"]
+data_ids_dict = get_Item_ids_for_all_groups(access_token, group_ids, "datasets", "id")
+all_data = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datasources", "datasets")
+headers, rows = convert_to_table_structure(all_data)
+create_or_update_table_1(headers,rows,table_name,primary_key)
