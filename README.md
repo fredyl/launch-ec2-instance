@@ -11,3 +11,33 @@ An error occurred:
                         UPDATE SET *
                     WHEN NOT MATCHED THEN
                         INSERT *
+
+
+ data_df.createOrReplaceTempView("temp_view")
+            if isinstance(primary_keys, list):
+                merge_condition = " AND ".join([f"target.{key} = source.{key}" for key in primary_keys]) 
+            else: 
+                # merge_condition = f"target.{primary_keys} = source.{primary_keys}"
+                merge_condition = " AND ".join([f"target.{col} = source.{col}" for col in primary_keys])
+                    
+                merge_query = f"""
+                    MERGE INTO {table_name} AS target
+                    USING temp_view AS source
+                    ON {merge_condition}
+                    WHEN MATCHED THEN
+                        UPDATE SET *
+                    WHEN NOT MATCHED THEN
+                        INSERT *
+                    """
+
+                
+
+                spark.sql(merge_query)
+
+        else:
+                print(f"Table {table_name} does not exist. Creating a new table.")
+                data_df.write.mode("overwrite").saveAsTable(table_name)
+        return data_df
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
