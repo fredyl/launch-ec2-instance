@@ -1,1 +1,1 @@
-GET https://api.powerbi.com/v1.0/myorg/gateways/{gatewayId}
+Exception: Request failed with status 401,Response: {"error":{"code":"PowerBINotAuthorizedException","pbi.error":{"code":"PowerBINotAuthorizedException","parameters":{},"details":[],"exceptionCulprit":1}}}
