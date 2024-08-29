@@ -81,6 +81,7 @@ if not tableExists:
 else:
     startDateTime = table('dev.bronze.pbi_activity_event').select(col('CreationTime').cast(TimestampType())).agg({'CreationTime': 'max'}).first()[0]
 
+dateLoop = getDateLoop(startDateTime, endDateTime)
 for (start, end) in dateLoop:
     print(start,end)
     lastResultSet = None
