@@ -1,3 +1,5 @@
+Failed while processing API 'dataflows/transactions' for table 'dev.bronze.pbi_dataflows_transactions': get_Item_ids_for_all_groups() got multiple values for argument 'id_field'
+
 def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_field=None, retrurn_full_json = False):
     """
     Retrieves all Specific item id's (e.g dataset,dataflow) for each group id
