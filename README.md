@@ -26,3 +26,11 @@ def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key =None,
             raise Exception(f"unexpected response format for group {group_id}: {e}")
 
     return results
+
+
+    'd2743458-256a-493c-80fe-43473ec81cd3': [],
+ '76588501-fc39414c4eaa': [],
+ '6ccf1a1b-aabf906e52d5': [],
+ 'e22480f3-5017e044d744': [],
+ '485c3f61-cafb637cdb8c': [],
+ 'f014186c-96ad307adecf': []}
