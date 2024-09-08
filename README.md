@@ -28,9 +28,4 @@ def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key =None,
     return results
 
 
-    'd2743458-256a-493c-80fe-43473ec81cd3': [],
- '76588501-fc39414c4eaa': [],
- '6ccf1a1b-aabf906e52d5': [],
- 'e22480f3-5017e044d744': [],
- '485c3f61-cafb637cdb8c': [],
- 'f014186c-96ad307adecf': []}
+calling api for groups/e26b065e-851e-4fc4-95da-4600e0f52423/datasets/{'id': '38a7bb90-949b-41aa-ab2b-a5ef58482fb0', 'name': 'Microsoft Project Web App', 'webUrl': 'https://app.powerbi.com/groups/e26b065e-851e-4fc4-95da-4600e0f52423/datasets/38a7bb90-949b-41aa-ab2b-a5ef58482fb0', 'addRowsAPIEnabled': False, 'configuredBy': 'DBernard@Trugreenmail.Com', 'isRefreshable': True, 'isEffectiveIdentityRequired': False, 'isEffectiveIdentityRolesRequired': False, 'isOnPremGatewayRequired': True, 'targetStorageMode': 'Abf', 'createdDate': '2019-09-18T13:46:28.463Z', 'createReportEmbedURL': 'https://app.powerbi.com/reportEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJpY3NWTmV4dCI6dHJ1ZX19', 'qnaEmbedURL': 'https://app.powerbi.com/qnaEmbed?config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLVVTLU5PUlRILUNFTlRSQUwtRy1QUklNQVJZLXJlZGlyZWN0LmFuYWx5c2lzLndpbmRvd3MubmV0IiwiZW1iZWRGZWF0dXJlcyI6eyJ1c2FnZU1ldHJ
