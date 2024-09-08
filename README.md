@@ -1,1 +1,6 @@
-Failed while processing API 'dataflows/datasources' for table 'dev.bronze.pbi_dataflows_datasource': [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `datasourceId` cannot be resolved. Did you mean one of the following? [`capacityId`, `defaultDatasetStorageFormat`, `id`, `isOnDedicatedCapacity`, `isReadOnly`, `name`, `type`]. SQLSTATE: 42703
+elif object_type is not None:
+   json_object = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
+    json_string = json.dumps(json_object)
+    json_rdd = spark.sparkContext.parallelize([json_string])
+    spark_df = spark.read.option("multiLine", True).json(json_rdd)
+     primary_key = spark_df[primary_key]
