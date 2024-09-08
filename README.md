@@ -1,54 +1,105 @@
-def call_power_bi_api_for_all_data(access_token, data_ids_dict,item_type, api_name, id_field):
-    """
-    the function makes a generic API call for each item in each group.
-    """
+def get_all_object_id_for_each_object_type(access_token, object_type, key_id ):
+    access_token = access_token
     
-    all_data = []
-    skipped_data = []
+    group_ids = get_all_groups_ids(access_token)[0]
+    powerbi_object_Ids = []
+    response_json = []
 
-#Looping through each group ID and its corresponding list of item IDs
-    for group_id, item_ids in data_ids_dict.items():
-        if not isinstance(item_ids, list):
-            raise Exception(f"API response must be a list, but got type {type(item_ids)}")
-            
-
-        for item_id in filter(None, item_ids):
-            if isinstance(item_id, dict):
-                item_id = item_id.get("id")
-                if item_id:
-                    endpoint=f"groups/{group_id}/{item_type}/{item_id}/{api_name}"
-                    # print(f"calling api for {endpoint}")
-
-                # Call API and print the response
-                try: 
-                    data = call_powerbi_api(access_token, endpoint)
-                    print(json.dumps(data, indent=4))
-                    if isinstance(data, list):
-                        for item in data:
-                            item[id_field] = item_id
-                        all_data.extend(data)
-                    elif isinstance(data, dict):
-                        data[id_field] = item_id
-                        all_data.append(data)
-                except Exception as e:
-                    print(f"Failed to retrieve data for {endpoint}: {e}")
-                    skipped_data.append(item_id)
-                    continue
-
-    if skipped_data:
-        print(f"Skipped data for {group_id} : {skipped_data}")
-    # all_data_rdd = spark.sparkContext.parallelize   (all_data)
-    # all_data_df = spark.createDataFrame(all_data)
-    # all_data_df.printSchema()
-
-    # all_data_cleaned =all_data_df.na.drop(how= "all")
-    # df = spark.createDataFrame(all_data)
-    display(all_data_df)
-    return all_data_df
-all_data_df = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datasets","datasources",id_field = "id")
+    for group_id in group_ids:
+        url = base_url + f"/groups/{group_id}/{object_type}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            items = response.json().get('value', [])
+            response_json.append(response.json())
+            for item in items:
+                if key_id in item:
+                    powerbi_object_Ids.append(item[key_id])
+        else:
+            raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
+    
+    return response_json, powerbi_object_Ids
 
 
-json_rdd = spark.sparkContext.parallelize([json_object])
-spark_df = spark.read.option("multiLine", True).json(json_rdd)
+def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
+    access_token = access_token
+    group_ids = get_all_groups_ids(access_token)[0]
+    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
 
-display(spark_df)
+    items_llist = []
+    for group_id in group_ids:
+        for object_id in object_ids:
+            url = base_url + f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                items = response.json().get('value', [])
+                # print(json.dumps(items, indent=4))
+                items_llist.extend(items)
+        return items_llist
+
+
+    def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
+    access_token = access_token
+    group_ids = get_all_groups_ids(access_token)[0]
+    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
+
+    items_llist = []
+    for group_id in group_ids:
+        for object_id in object_ids:
+            url = base_url + f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                items = response.json().get('value', [])
+                # print(json.dumps(items, indent=4))
+                items_llist.extend(items)
+        return items_llist
+
+
+
+def create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag=None, object_type=None, key_id=None, sub_api_endpoint=None):
+    access_token = access_token
+
+    if api_flag is not None:
+        json_object = get_all_groups_ids(access_token)[1]
+        json_string = json.dumps(json_object)
+        json_rdd = spark.sparkContext.parallelize([json_string])
+        spark_df = spark.read.option("multiLine", True).json(json_rdd)
+        primary_key = spark_df[primary_key]
+
+    else:
+        json_object = get_object_type_items(access_token, object_type, key_id, sub_api_endpoint)
+        json_string = json.dumps(json_object)
+
+        json_rdd = spark.sparkContext.parallelize([json_string])
+        spark_df = spark.read.option("multiLine", True).json(json_rdd)
+
+        primary_key = spark_df[primary_key]
+
+    all_data_df = spark_df
+    if spark.catalog.tableExists(table_name):
+        print(f"Table {table_name} exists, updating")
+
+        existing_df = spark.table(table_name)
+
+        all_data_df.createOrReplaceTempView('new_data')
+        
+        merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
+
+        merge_query = f"""
+        MERGE INTO {table_name} AS t
+        USING new_data AS n
+        ON {merge_condition}
+        WHEN MATCHED THEN 
+        UPDATE SET *
+        WHEN NOT MATCHED
+         THEN INSERT *
+        """
+    else: 
+        print(f"Table {table_name} does not exist. Creating a new table.")
+        spark_df.write.format("delta").saveAsTable(table_name)
+
+def create_dataframe_for_groups_json_data(access_token):
+    access_token = access_token
+    json_object = get_all_groups_ids(access_token)[1]
+    json_string = json.dumps(json_object)
+    
+    json_rdd = spark.sparkContext.parallelize([json_string])
