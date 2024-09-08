@@ -28,8 +28,4 @@ def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key =None,
     return results
 
 
-{'id': 'e26b065e-851e-4fc4-95da-4600e0f52423',
-  'isReadOnly': False,
-  'isOnDedicatedCapacity': False,
-  'type': 'Workspace',
-  'name': 'Microsoft Project Web App'},
+calling api for groups/f014186c-db9b-4c49-969b-96ad307adecf/datasets/dadb599e-c331-4209-8f4d-51257f94d792/datasources
