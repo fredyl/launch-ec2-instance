@@ -1,31 +1,16 @@
-def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key =None, return_type ="json"):
-    results = {}
-    for group_id in group_ids:
-        endpoint = f"groups/{group_id}/{api_name}"
-        try:
-            response_data = call_powerbi_api(access_token, endpoint)
-            if isinstance(response_data, dict):
-                items = response_data.get('value', [])
-            elif isinstance(response_data, list):
-                items = {'value': response_data}
-            else:
-                raise Exception(f"unexpected response format for group {group_id}")
-        
-            if return_type == "ids":
-                if id_key is not None:
-                    raise ValueError(f"id_key must be specified for return_type 'ids'")
-                results[group_id] = [item.get(id_key) for item in response_data if item.get(id_key) is not None] 
-                    # return [group_id for group_id, items in results.items() if items is not None]
-            elif return_type == "json":
-                results[group_id] = items
-                        # results[group_id] = [ item for item in response_data.get("value") if item is not None]
-                return results
-            else:
-                raise Exception(f"Invalid return type . Use 'ids' or 'json'")
-        except Exception as e:
-            raise Exception(f"unexpected response format for group {group_id}: {e}")
-
-    return results
-
-
-calling api for groups/f014186c-db9b-4c49-969b-96ad307adecf/datasets/dadb599e-c331-4209-8f4d-51257f94d792/datasources
+UnboundLocalError: cannot access local variable 'endpoint' where it is not associated with a value
+File <command-1936225453607471>, line 24, in call_power_bi_api_for_all_data(access_token, data_ids_dict, item_type, api_name, id_field)
+     23 try: 
+---> 24     data = call_powerbi_api(access_token, endpoint)
+     25     print(json.dumps(data, indent=4))
+File <command-1936225453607471>, line 34, in call_power_bi_api_for_all_data(access_token, data_ids_dict, item_type, api_name, id_field)
+     26 #             if isinstance(data, list):
+     27 #                 for item in data:</span>
+     28 #                     item[id_field] = item_id
+   (...)
+     31 #                 data[id_field] = item_id
+     32 #                 all_data.append(data)
+     33         except Exception as e:
+---> 34             print(f"Failed to retrieve data for {endpoint}: {e}")
+     35             # skipped_data.append(item_id)
+     36             continue
