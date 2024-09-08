@@ -46,3 +46,9 @@ def call_power_bi_api_for_all_data(access_token, data_ids_dict,item_type, api_na
     display(all_data_df)
     return all_data_df
 all_data_df = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datasets","datasources",id_field = "id")
+
+
+json_rdd = spark.sparkContext.parallelize([json_object])
+spark_df = spark.read.option("multiLine", True).json(json_rdd)
+
+display(spark_df)
