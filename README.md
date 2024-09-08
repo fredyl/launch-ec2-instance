@@ -19,24 +19,24 @@ def call_power_bi_api_for_all_data(access_token, data_ids_dict,item_type, api_na
                     endpoint=f"groups/{group_id}/{item_type}/{item_id}/{api_name}"
                     # print(f"calling api for {endpoint}")
 
-            # Call API and print the response
-            try: 
-                data = call_powerbi_api(access_token, endpoint)
-                print(json.dumps(data, indent=4))
-                if isinstance(data, list):
-                    for item in data:
-                        item[id_field] = item_id
-                    all_data.extend(data)
-                elif isinstance(data, dict):
-                    data[id_field] = item_id
-                    all_data.append(data)
-            except Exception as e:
-                print(f"Failed to retrieve data for {endpoint}: {e}")
-                skipped_data.append(item_id)
-                continue
+                # Call API and print the response
+                try: 
+                    data = call_powerbi_api(access_token, endpoint)
+                    print(json.dumps(data, indent=4))
+                    if isinstance(data, list):
+                        for item in data:
+                            item[id_field] = item_id
+                        all_data.extend(data)
+                    elif isinstance(data, dict):
+                        data[id_field] = item_id
+                        all_data.append(data)
+                except Exception as e:
+                    print(f"Failed to retrieve data for {endpoint}: {e}")
+                    skipped_data.append(item_id)
+                    continue
 
-    # if skipped_data:
-    #     print(f"Skipped data for {group_id} : {skipped_data}")
+    if skipped_data:
+        print(f"Skipped data for {group_id} : {skipped_data}")
     # all_data_rdd = spark.sparkContext.parallelize   (all_data)
     # all_data_df = spark.createDataFrame(all_data)
     # all_data_df.printSchema()
@@ -45,4 +45,4 @@ def call_power_bi_api_for_all_data(access_token, data_ids_dict,item_type, api_na
     # df = spark.createDataFrame(all_data)
     display(all_data_df)
     return all_data_df
-all_data_df = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datsets","datasources",id_field = "id")
+all_data_df = call_power_bi_api_for_all_data(access_token, data_ids_dict, "datasets","datasources",id_field = "id")
