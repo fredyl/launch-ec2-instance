@@ -22,3 +22,6 @@
                         item['object_id'] = object_id
                     items_llist.extend(items)
             return items_llist
+
+
+env = spark.sql("SELECT current_catalog()").collect()[0][0]
