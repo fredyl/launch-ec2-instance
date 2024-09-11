@@ -1,29 +1,22 @@
-def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
+def get_all_object_id_for_each_object_type(access_token, object_type, key_id ):
     """
-    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
-    object_id's
+    Get object ids for each object type in Power BI api
     """
- 
+     
     group_ids = all_group_ids[0]
-    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
+    powerbi_object_Ids = []
+    response_json = []
 
-    items_llist = []
-   
     for group_id in group_ids:
-        print(f"Processing group_id {group_id}")
-        for object_id in object_ids:
-            url = base_url + f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                if sub_api_endpoint == "refreshSchedule": #sub_api_endpoint is refreshSchedule the process since the response is a json object
-                    items = response.json()
-                    items[key_id] = object_id
-                    items_llist.append(items)
-                else:
-                    items = response.json().get('value', [])
-                    for item in items:
-                        item[key_id] = object_id
-                    items_llist.extend(items)
-    return items_llist
+        url = base_url + f"/groups/{group_id}/{object_type}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            items = response.json().get('value', [])
+            response_json.append(response.json())
+            for item in items:
+                if key_id in item:
+                    powerbi_object_Ids.append(item[key_id])
+        else:
+            raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
     
-print(json.dumps(get_object_type_items(access_token, "datasets", "id", "refreshSchedule"), indent=2))
+    return response_json, powerbi_object_Ids
