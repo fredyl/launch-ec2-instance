@@ -1,9 +1,16 @@
-Exception: Request failed with status 404,Response: {"error":{"code":"DMTS_UserNotFoundInADGraphError","pbi.error":{"code":"DMTS_UserNotFoundInADGraphError","parameters":{},"details":[],"exceptionCulprit":1}}}
-File <command-2798623019031156>, line 27
-     25                 continue
-     26     return items_llist
----> 27 get_object_type_items(access_token, 'datasets', 'id','datasources')
-File <command-2798623019031153>, line 16, in call_powerbi_api(access_token, endpoint, params)
-     14     time.sleep(retry_after)
-     15 else:
----> 16     raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
+def call_powerbi_api(access_token, endpoint, params=None):
+    headers= { 'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+        }
+    base_url = 'https://api.powerbi.com/v1.0/myorg/'
+    url = base_url + endpoint
+    for _ in range(3):
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            json_data = response.json()
+            return response, json_data
+        elif response.status_code == 429:
+            retry_after = int(response.headers.get('Retry-After', 8))
+            time.sleep(retry_after)
+        else:
+            raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
