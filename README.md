@@ -1,24 +1,9 @@
-def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
-    """
-    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
-    object_id's
-    """
-    groups_ids = all_group_ids[0]
-    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
-
-    items_llist = []
-    for group_id in groups_ids:
-        for object_id in object_ids:
-            endpoint = f"groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
-            # print(endpoint)
-            response = call_powerbi_api(access_token, endpoint)
-            if response[0] == 200:
-                items = response.get('value', [])
-                for item in items:
-                    item[key_id] = object_id
-                items_llist.extend(items)
-            else:
-                print(f"Skipping URL: {endpoint} - Response: {response[0].status_code}")
-                continue
-    return items_llist
-get_object_type_items(access_token, 'datasets', 'id','datasources')
+Exception: Request failed with status 404,Response: {"error":{"code":"DMTS_UserNotFoundInADGraphError","pbi.error":{"code":"DMTS_UserNotFoundInADGraphError","parameters":{},"details":[],"exceptionCulprit":1}}}
+File <command-2798623019031156>, line 27
+     25                 continue
+     26     return items_llist
+---> 27 get_object_type_items(access_token, 'datasets', 'id','datasources')
+File <command-2798623019031153>, line 16, in call_powerbi_api(access_token, endpoint, params)
+     14     time.sleep(retry_after)
+     15 else:
+---> 16     raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
