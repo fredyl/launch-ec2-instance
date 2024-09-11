@@ -20,3 +20,6 @@ def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
                 print(f"Error for group_id {group_id}, object_id {object_id}: {e}")
     
     return items_list
+
+
+Error for group_id 3b1b45fe-32cd-4bbb-afa8-005c505e6f6a, object_id de009f69-61d7-41e3-a8e9-371567072621: Request failed with status 403,Response: {"error":{"code":"Unauthorized","message":"User is not authorized"}}
