@@ -61,3 +61,36 @@ def call_power_bi_api_for_all_data(access_token, data_ids_dict, api_name, item_t
         
 
     return all_data
+
+
+
+
+
+    import requests
+
+def get_all_object_id_for_each_object_type(access_token, object_type, key_id):
+    """
+    Get object ids for each object type in Power BI API.
+    """
+    group_ids = all_group_ids[0]
+    powerbi_object_Ids = []
+    response_json = []
+
+    for group_id in group_ids:
+        url = base_url + f"/groups/{group_id}/{object_type}"
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            data = response.json()
+            response_json.append(data)
+            items = data.get('value', [])
+            powerbi_object_Ids.extend(item[key_id] for item in items if key_id in item)
+        except requests.RequestException as e:
+            # Handle request-related errors (e.g., network issues, invalid responses)
+            print(f"Request failed for group_id {group_id} with error: {e}")
+        except Exception as e:
+            # Handle other potential exceptions
+            print(f"An error occurred: {e}")
+
+    return response_json, powerbi_object_Ids
+
