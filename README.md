@@ -1,38 +1,39 @@
-import requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
+def call_power_bi_api_for_all_data(access_token, data_ids_dict, api_name, item_type):
+    """
+    the function makes a generic API call for each item in each group.
+    """
+    
+    all_data = []
+    skipped_data = []
 
-def fetch_object_items(group_id, object_id, object_type, sub_api_endpoint, headers):
-    url = base_url + f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        if sub_api_endpoint == "refreshSchedule":
-            items = response.json()
-            items[key_id] = object_id
-            return items
-        else:
-            items = response.json().get('value', [])
-            for item in items:
-                item[key_id] = object_id
-            return items
-    return []
+#Looping through each group ID and its corresponding list of item IDs
+    for group_id, item_ids in data_ids_dict.items():
 
-def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
-    group_ids = get_all_groups_ids(access_token)[0]
-    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
+        if not isinstance(item_ids, list):
+            raise Exception(f"API response must be a list, but got type {type(item_ids)}")
 
-    items_llist = []
+        for item_id in item_ids:
+            if not isinstance(item_id, str):
+                raise Exception(f"API response must be a list, but got type {type(item_id)}")
 
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for group_id in group_ids:
-            for object_id in object_ids:
-                futures.append(executor.submit(fetch_object_items, group_id, object_id, object_type, sub_api_endpoint, headers))
+            for item_id in item_ids:
+                if item_id is None:
+                    print(f"Skipping item with no id for group id {group_id}")
+                    continue
+            
+            #Creating the API endpoint for the specific group, item type, and item ID
+            endpoint=f"groups/{group_id}/{item_type}/{item_id}/{api_name}"
 
-        for future in as_completed(futures):
-            items = future.result()
-            if isinstance(items, list):
-                items_llist.extend(items)
-            elif isinstance(items, dict):
-                items_llist.append(items)
+            #Call API and print the response
+            try: 
+                data = call_powerbi_api(access_token, endpoint)
+                if isinstance(data, list):
+                    all_data.extend(data)
+                elif isinstance(data, dict):
+                    all_data.append(data)
+            except Exception as e:
+                skipped_data.append(item_id)
+                continue
+        
 
-    return items_llist
+    return all_data
