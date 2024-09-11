@@ -27,3 +27,8 @@ def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
     return items_list
 
 print(get_object_type_items(access_token, "datasets", "id", "refreshSchedule"))
+
+
+
+Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 86af50ca-db19-48d4-b25f-60cec82c0052: Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 86af50ca-db19-48d4-b25f-60cec82c0052: ({'@odata.context': 'https://wabi-us-north-central-g-primary-redirect.analysis.windows.net/v1.0/myorg/groups/e26b065e-851e-4fc4-95da-4600e0f52423/$metadata#Microsoft.PowerBI.ServiceContracts.Api.V1.RefreshSchedule', 'days': ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], 'times': ['14:00'], 'enabled': False, 'localTimeZoneId': 'Central Standard Time', 'notifyOption': 'NoNotification'}, <Response [200]>)
+Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 4b4c0836-67bc-4e91-879f-5896169b6073: Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 4b4c0836-67bc-4e91-879f-5896169b6073: ({'@odata.context': 'https://wabi-us-north-central-g-primary-redirect.analysis.windows.net/v1.0/myorg/groups/e26b065e-851e-4fc4-95da-4600e0f52423/$metadata#Microsoft.PowerBI.ServiceContracts.Api.V1.RefreshSchedule', 'days': ['Sunday', 'Wednesday'], 'times': ['14:00'], 'enabled': True, 'localTimeZoneId': 'Central Standard Time', 'notifyOption': 'NoNotification'}, <Response [200]>)
