@@ -1,39 +1,76 @@
-def call_power_bi_api_for_all_data(access_token, data_ids_dict, api_name, item_type):
-    """
-    the function makes a generic API call for each item in each group.
-    """
+def call_powerbi_api(access_token, endpoint, params=None):
+
+    url = base_url + endpoint
+    for _ in range(3):
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            return data['value'] if 'value' in data else data
+        elif response.status_code == 429:
+            retry_after = int(response.headers.get('Retry-After', 8))
+            time.sleep(retry_after)
+        else:
+            raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
+
+headers= { 'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+        }
+base_url = 'https://api.powerbi.com/v1.0/myorg/'
+
+
+def get_all_groups_ids(access_token):
+    groups_data = call_powerbi_api(access_token, 'groups')
+    group_ids = [groups_data['id'] for groups_data in groups_data]
+    return group_ids, groups_data
+
+all_group_ids = get_all_groups_ids(access_token)
+
+
+def get_all_object_id_for_each_object_type(access_token, object_type, key_id): 
+    """ Get object ids for each object type in Power BI API. """ 
     
-    all_data = []
-    skipped_data = []
+    group_ids = all_group_ids[0] 
+    powerbi_object_Ids = [] 
+    response_json = []
 
-#Looping through each group ID and its corresponding list of item IDs
-    for group_id, item_ids in data_ids_dict.items():
+    for group_id in group_ids:
+        url = base_url + f"/groups/{group_id}/{object_type}"
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status() 
+            data = response.json()
+            response_json.append(data)
+            items = data.get('value', [])
+            powerbi_object_Ids.extend(item[key_id] for item in items if key_id in item)
+        except requests.RequestException as e:
+            print(f"Request failed for group_id {group_id} with error: {e}")
+        except Exception as e:
 
-        if not isinstance(item_ids, list):
-            raise Exception(f"API response must be a list, but got type {type(item_ids)}")
+            print(f"An error occurred: {e}")
 
-        for item_id in item_ids:
-            if not isinstance(item_id, str):
-                raise Exception(f"API response must be a list, but got type {type(item_id)}")
+    return response_json, powerbi_object_Ids
 
-            for item_id in item_ids:
-                if item_id is None:
-                    print(f"Skipping item with no id for group id {group_id}")
-                    continue
-            
-            #Creating the API endpoint for the specific group, item type, and item ID
-            endpoint=f"groups/{group_id}/{item_type}/{item_id}/{api_name}"
 
-            #Call API and print the response
-            try: 
-                data = call_powerbi_api(access_token, endpoint)
-                if isinstance(data, list):
-                    all_data.extend(data)
-                elif isinstance(data, dict):
-                    all_data.append(data)
-            except Exception as e:
-                skipped_data.append(item_id)
-                continue
-        
 
-    return all_data
+    def get_all_object_id_for_each_object_type(access_token, object_type, key_id ):
+    """
+    Get object ids for each object type in Power BI api
+    """
+     
+    group_ids = all_group_ids[0]
+    powerbi_object_Ids = []
+    response_json = []
+
+    for group_id in group_ids:
+        url = base_url + f"/groups/{group_id}/{object_type}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            items = response.json().get('value', [])
+            response_json.append(response.json())
+            for item in items:
+                if key_id in item:
+                    powerbi_object_Ids.append(item[key_id])
+        else:
+            raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
+    
+    return response_json, powerbi_object_Ids
