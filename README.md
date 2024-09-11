@@ -1,2 +1,20 @@
-atasources
-Request failed with status <Response [200]>, URL: groups/e26b065e-851e-4fc4-95da-4600e0f52423/datasets/24a8f5d2-9eca-482c-a63d-b8cb69a4dc19/datasources
+def call_powerbi_api(access_token, endpoint, params=None):
+    headers= { 'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+        }
+    base_url = 'https://api.powerbi.com/v1.0/myorg/'
+    url = base_url + endpoint
+    for _ in range(3):
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            json_data = response.json()
+            return response, json_data
+        elif response.status_code == 429:
+            retry_after = int(response.headers.get('Retry-After', 8))
+            time.sleep(retry_after)
+        else:
+            error_message =(
+                f"Request failed with status {response.status_code}",
+                f"Response: {response.text}, URL: {url}",
+            )
+            raise Exception(error_message)
