@@ -28,6 +28,5 @@ def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
 
 print(get_object_type_items(access_token, "datasets", "id", "refreshSchedule"))
 
-
 Processing group_id e26b065e-851e-4fc4-95da-4600e0f52423
 Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 38a7bb90-949b-41aa-ab2b-a5ef58482fb0: Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 38a7bb90-949b-41aa-ab2b-a5ef58482fb0: <Response [200]>
