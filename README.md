@@ -28,5 +28,25 @@ def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
 
 print(get_object_type_items(access_token, "datasets", "id", "refreshSchedule"))
 
-Processing group_id e26b065e-851e-4fc4-95da-4600e0f52423
-Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 38a7bb90-949b-41aa-ab2b-a5ef58482fb0: Error for group_id e26b065e-851e-4fc4-95da-4600e0f52423, object_id 38a7bb90-949b-41aa-ab2b-a5ef58482fb0: <Response [200]>
+
+ base_url = "YOUR_BASE_URL"  # Replace with your actual base URL
+    group_ids = all_group_ids[0]
+    powerbi_object_Ids = []
+    response_json = []
+
+    for group_id in group_ids:
+        endpoint = f"/groups/{group_id}/{object_type}"
+        response = call_powerbi_api(access_token, endpoint)
+        if response.status_code == 200:
+            items = response.json().get('value', [])
+            response_json.append(response.json())
+            for item in items:
+                if key_id in item:
+                    powerbi_object_Ids.append(item[key_id])
+        else:
+            raise Exception(f"Request failed with status {response.status_code}, Response: {response.text}")
+
+    return response_json, powerbi_object_Ids
+
+
+AttributeError: 'tuple' object has no attribute 'status_code'
