@@ -22,3 +22,26 @@ def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint
                     raise  # Reraise the error for other types of HTTP errors
 
     return all_data
+
+
+
+Exception: Request failed with status 403,Response: {"error":{"code":"Unauthorized","message":"User is not authorized"}}
+File <command-3783901938368400>, line 53
+     24     return all_data
+     28     # for group_id, item_ids in group_id_and_ojbect_id_dict.items():
+     29     #     # print(group_id, item_ids)
+     30     #     if not isinstance(item_ids, list):
+   (...)
+     50     #             # skipped_data.append(item_id)
+     51     #             continue
+---> 53 get_object_type_items(access_token, 'dataflows', 'objectId', 'datasources')
+File <command-3783901938368400>, line 14, in get_object_type_items(access_token, object_type, object_id, sub_api_endpoint)
+     12 endpoint= f"groups/{group_ids}/{object_type}/{obj_id}/{sub_api_endpoint}"
+     13     # print(endpoint)
+---> 14 response = call_powerbi_api(access_token, endpoint)[1]
+     15 if response == 403:
+     16         print(f"Skipping item user does not have access to {group_ids}")
+File <command-3783901938368397>, line 22, in call_powerbi_api(access_token, endpoint, params)
+     20     time.sleep(retry_after)
+     21 else:
+---> 22     raise Exception(f"Request failed with status {response.status_code},Response: {response.text}")
