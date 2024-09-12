@@ -34,9 +34,5 @@ get_object_type_items(access_token, 'datasets', 'id', 'datasources')
 
 
 
- '97b99d50-bc67-4e69-84d3-1c78e0c7db21': ['5ed17564-31c3-48f8-9108-bbb838cac3b3'],
- '995e1915-5334-43d8-bc4b-4efb40ff9adf': [],
- 'da9faf07-0f02-48a8-8796-6052339a6dd1': [],
- '2c87a876-ae5f-4ca1-a0ca-573556457626': [],
- '88a250a3-615a-4118-81f2-6ed110811a25': ['582456de-a84d-4dc0-ab39-01c4640e7bf5',
-  'ed135cbf-0450-4645-96bb-e1f51c0a53b4',
+ /groups/e26b065e-851e-4fc4-95da-4600e0f52423/datasets/38a7bb90-949b-41aa-ab2b-a5ef58482fb0/datasources
+<Response [404]>
