@@ -1,45 +1,41 @@
-def get_all_groups_ids(access_token):
-    try:
-        # Fetch group IDs from the Power BI API
-        groups_data = call_powerbi_api(access_token, 'groups')[1]
-        group_ids = [group['id'] for group in groups_data['value']]
-        return group_ids
-    except Exception as e:
-        print(f"Error fetching group IDs: {e}")
-        return []
+import requests
+import concurrent.futures
 
-def get_all_object_type_items_for_groups(access_token, object_type, key_id, sub_api_endpoint):
-    group_ids = get_all_groups_ids(access_token)  # Fetch group IDs
+def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
+    """
+    Retrieves items from object_type (e.g. datasets, reports, dataflows) based on the object_id's.
+    Optimized to handle API requests concurrently.
+    """
+    group_ids = get_all_groups_ids(access_token)[0]
+    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
+
     items_list = []
 
-    # Combine group and object data retrieval without looping through group_ids
-    for group_id in group_ids:
-        try:
-            # Fetch the object type items for each group ID in one go (without looping)
-            endpoint = f"/groups/{group_id}/{object_type}/{sub_api_endpoint}"
-            response, data = call_powerbi_api(access_token, endpoint)
-            
-            if response.status_code == 200:
-                # If sub_api_endpoint is refreshSchedule, add object IDs to data
-                if sub_api_endpoint == "refreshSchedule":
-                    data[key_id] = group_id
-                    items_list.append(data)
-                else:
-                    items = data.get('value', [])
-                    for item in items:
-                        item[key_id] = group_id
-                    items_list.extend(items)
+    # Define a helper function to make the API call
+    def fetch_items(group_id, object_id):
+        url = base_url + f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            if sub_api_endpoint == "refreshSchedule":
+                data[key_id] = object_id
+                return [data]
+            else:
+                items = data.get('value', [])
+                for item in items:
+                    item[key_id] = object_id
+                return items
+        return []
 
-        except Exception as e:
-            print(f"Error for group_id {group_id}: {e}")
+    # Use ThreadPoolExecutor for concurrent execution of requests
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for group_id in group_ids:
+            for object_id in object_ids:
+                futures.append(executor.submit(fetch_items, group_id, object_id))
+        
+        # Gather results from all the futures
+        for future in concurrent.futures.as_completed(futures):
+            items_list.extend(future.result())
 
     return items_list
-
-# Example usage
-access_token = "your_access_token_here"
-object_type = "datasets"
-key_id = "id"
-sub_api_endpoint = "refreshSchedule"
-
-# Fetch all group IDs and object type items in one go
-items = get_all_object_type_items_for_groups(access_token, object_type, key_id, sub_api_endpoint)
