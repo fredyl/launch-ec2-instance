@@ -1,41 +1,45 @@
-def get_object_type_items(access_token, object_type, key_id, sub_api_endpoint):
-    group_ids = get_all_groups_ids(access_token)[0]
-    object_ids = get_all_object_id_for_each_object_type(access_token, object_type, key_id)[1]
-
-
-        items_list = []
-            for group_id in group_ids:
-                print(f'Porcessing group_id: {group_id}')
-                for object_id in object_ids:
-                    endpoint = f"/groups/{group_id}/{object_type}/{object_id}/{sub_api_endpoint}"
-                    # print(endpoint)
-                    try:
-                        response = call_powerbi_api(access_token, endpoint)[1]
-                        if response.status_code == 200:
-                            data =response.json()
-                            # if isinstance (data, dict):
-                            #     print(f"Response Data for group_id {group_id}, object_id {object_id}: {data}")
-                            if sub_api_endpoint == "refreshSchedule":
-                                data[key_id] = object_id
-                                items_list.extend(data)
-                                print(items_list)
-                            else:
-                                items = data.get('value', [])
-                                for item in items:
-                                    item[key_id] = object_id
-                                items_list.append(items)
-                    except Exception as e:
-
-
-
 def get_all_groups_ids(access_token):
-    groups_data = call_powerbi_api(access_token, 'groups')
-    group_ids = [group['id'] for group in groups_data[0]['value']]
-    return group_ids, groups_data
+    try:
+        # Fetch group IDs from the Power BI API
+        groups_data = call_powerbi_api(access_token, 'groups')[1]
+        group_ids = [group['id'] for group in groups_data['value']]
+        return group_ids
+    except Exception as e:
+        print(f"Error fetching group IDs: {e}")
+        return []
 
-all_group_ids = get_all_groups_ids(access_token)
-                print(f"Error for group_id {group_id}, object_id {object_id}: {e}")
+def get_all_object_type_items_for_groups(access_token, object_type, key_id, sub_api_endpoint):
+    group_ids = get_all_groups_ids(access_token)  # Fetch group IDs
+    items_list = []
+
+    # Combine group and object data retrieval without looping through group_ids
+    for group_id in group_ids:
+        try:
+            # Fetch the object type items for each group ID in one go (without looping)
+            endpoint = f"/groups/{group_id}/{object_type}/{sub_api_endpoint}"
+            response, data = call_powerbi_api(access_token, endpoint)
+            
+            if response.status_code == 200:
+                # If sub_api_endpoint is refreshSchedule, add object IDs to data
+                if sub_api_endpoint == "refreshSchedule":
+                    data[key_id] = group_id
+                    items_list.append(data)
+                else:
+                    items = data.get('value', [])
+                    for item in items:
+                        item[key_id] = group_id
+                    items_list.extend(items)
+
+        except Exception as e:
+            print(f"Error for group_id {group_id}: {e}")
 
     return items_list
 
-Error for group_id 3b1b45fe-32cd-4bbb-afa8-005c505e6f6a, object_id de009f69-61d7-41e3-a8e9-371567072621: Request failed with status 403,Response: {"error":{"code":"Unauthorized","message":"User is not authorized"}}
+# Example usage
+access_token = "your_access_token_here"
+object_type = "datasets"
+key_id = "id"
+sub_api_endpoint = "refreshSchedule"
+
+# Fetch all group IDs and object type items in one go
+items = get_all_object_type_items_for_groups(access_token, object_type, key_id, sub_api_endpoint)
