@@ -23,7 +23,30 @@ def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint
 
     return all_data
 
+sub_api_endpoint):
+    """
+    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
+    object_id's
+    """
+    groups_ids = get_all_groups_ids(access_token)
+    group_id_and_ojbect_id_dict = get_item_ids_for_all_groups(access_token, groups_ids, object_type, object_id)
+    all_data = []
 
+    for group_ids, object_ids in group_id_and_ojbect_id_dict.items():
+        for obj_id in object_ids:
+            endpoint= f"groups/{group_ids}/{object_type}/{obj_id}/{sub_api_endpoint}"
+                # print(endpoint)
+            response = call_powerbi_api(access_token, endpoint)[1]
+            if response == 403:
+                    print(f"Skipping item user does not have access to {group_ids}")
+                    continue
+            else:
+                if response == 200:
+                    response = call_powerbi_api(access_token, endpoint)[0]
+                    all_data.append(response)
+                    # print(response)
+                
+    return all_data
 
 Exception: Request failed with status 403,Response: {"error":{"code":"Unauthorized","message":"User is not authorized"}}
 File <command-3783901938368400>, line 53
