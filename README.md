@@ -23,3 +23,22 @@ def get_Item_ids_for_all_groups(access_token, group_ids, api_name, id_key):
     return all_items_id
 
 get_Item_ids_for_all_groups(access_token, get_all_groups_ids(access_token), 'dataflows', 'objectId')
+
+
+
+all_group_ids = get_all_groups_ids(access_token)
+def get_items_id_for_each_group_id(access_token, all_group_ids, object_type, id_key):
+    all_items_id = {}
+    for group_id in all_group_ids:
+        endpoint = f"groups/{group_id}/{object_type}"
+        response = call_powerbi_api(access_token, endpoint)[1]
+        response.get('value',[])
+
+        if not isinstance(response, dict):
+            raise Exception(f"API response must be a dict, but got type {type(response)} for group id {group_id}")
+        for item in response:
+            if id_key in item:
+                all_items_id[group_id] = id_key
+
+    return all_items_id
+get_items_id_for_each_group_id(access_token, all_group_ids, 'dataflows', 'objectId')
