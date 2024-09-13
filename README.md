@@ -49,6 +49,8 @@ def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint
 
 
 
-AttributeError: type object 'datetime.datetime' has no attribute 'datetime'
+DataFrame[_corrupt_record: string]
 
+
+[[ {"id": "76588501-bd29-439c-b522-fc39414c4eaa", "isReadOnly": false, "isOnDedicatedCapacity": true, "capacityId": "45A20026-742A-4E9B-9FF8-319C09AD7602", "defaultDatasetStorageFormat": "Small", "type": "Workspace", "name": "Administration"}, {"id": "6ccf1a1b-877e-458c-bf1c-aabf906e52d5", "isReadOnly": false, "isOnDedicatedCapacity": true, "capacityId": "700315D0-91B1-461E-A970-68E2D9C08AC9", "defaultDatasetStorageFormat": "Small", "type": "Workspace", "name": "Microsoft Fabric Capacity Metrics 9/5/2024 4:09:52 PM"}, {"id": "e22480f3-a44b-458f-ba98-5017e044d744", "isReadOnly": false, "isOnDedicatedCapacity": true, "capacityId": "700315D0-91B1-461E-A970-68E2D9C08AC9", "defaultDatasetStorageFormat": "Small", "type": "Workspace", "name": "Fabric Chargeback Reporting 12/27/2023 7:30:55 AM"}, {"id": "485c3f61-5ecd-4bc1-a96c-cafb637cdb8c", "isReadOnly": false, "isOnDedicatedCapacity": true, "capacityId": "700315D0-91B1-461E-A970-68E2D9C08AC9", "defaultDatasetStorageFormat": "Small", "type": "Workspace", "name": "_DataHub"}, {"id": "f014186c-db9b-4c49-969b-96ad307adecf", "isReadOnly": false, "isOnDedicatedCapacity": true, "capacityId": "45A20026-742A-4E9B-9FF8-319C09AD7602", "defaultDatasetStorageFormat": "Small", "type": "Workspace", "name": "Dev"}]]
     
