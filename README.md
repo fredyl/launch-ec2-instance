@@ -46,3 +46,9 @@ def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint
             #     print(f"unexpected error {response.status_code } for group {group_id}")
                 
     return all_data
+
+
+
+AttributeError: type object 'datetime.datetime' has no attribute 'datetime'
+
+    
