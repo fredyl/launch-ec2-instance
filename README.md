@@ -105,3 +105,9 @@ def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint
     #     spark_df.write.format("delta").saveAsTable(table_name)
 
 print(create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_groups", primary_key=["objectId"], object_type="dataflows", sub_api_endpoint="datasources"))
+
+
+
+
+print(create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_groups", primary_key=["objectId"], object_type="dataflows", sub_api_endpoint="datasources"))
+
