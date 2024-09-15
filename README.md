@@ -1,3 +1,7 @@
+
+create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_groups", primary_key=["id"], api_flag=None,object_type="datasets", key_id=None,sub_api_endpoint=None)
+
+
 {
     "@odata.context": "https://wabi-us-north-central-g-primary-redirect.analysis.windows.net/v1.0/myorg/groups/f014186c-db9b-4c49-969b-96ad307adecf/$metadata#datasets",
     "value": [
