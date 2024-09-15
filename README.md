@@ -1,3 +1,6 @@
+
+create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_groups", primary_key=["days"], api_flag=None,object_type="datasets", key_id="id",sub_api_endpoint="refreshSchedule")
+
 working on get_item_ids_for_all_groups
 Skipping group 9e927c71-8d32-492e-b656-30ad34115c58 as it has no datasetss
 Skipping group 158ff9b8-df99-47a8-93d2-27d25d4d50ba as it has no datasetss
