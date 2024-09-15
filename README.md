@@ -51,3 +51,11 @@
       }
     ]
   },
+
+
+   if 'value' in json_df.columns:
+        nested_df = json_df.select(explode("value").alias("data"))
+        flattened_df = nested_df.select("data.*")
+        flattened_df.show(truncate=False)
+    else:
+        json_df.show(truncate=False)
