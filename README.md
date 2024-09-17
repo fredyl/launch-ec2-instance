@@ -1,52 +1,50 @@
-def create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag=None, object_type=None, key_id=None, sub_api_endpoint=None):
-
+def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint):
     """
-    create Dataframe from json data and update or merge the data to delta table
-    api_flag (e.g groups)
+    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
+    object_id's
     """
+    # all_groups_ids = group_ids
+    group_id_and_object_id_dict = get_item_ids_for_all_groups(access_token, group_ids, object_type, object_id)
+    all_data = []
+    # base_url = 'https://api.powerbi.com/v1.0/myorg/'
+    # headers ={ 'Authorization': f'Bearer {access_token}',
+    #             'Content-Type': 'application/json'
+    #     }
 
-    #Fetch the current timetamp
-    timestamp = dt.utcnow().isoformat()
+    for group_id, object_ids in group_id_and_object_id_dict.items():
+        if not object_ids:
+            print(f"Skipping group {group_id} as it has no {object_type}s")
+            continue
+        for obj_id in object_ids:
+            endpoint= f"/groups/{group_id}/{object_type}/{obj_id}/{sub_api_endpoint}"
+            # base_url = 'https://api.powerbi.com/v1.0/myorg/'
+            # url = base_url + endpoint
+            try:
+                response_data, status_code = call_powerbi_api(access_token, endpoint)
+                if status_code == 200:
+                    if isinstance(response_data, dict):
+                        if sub_api_endpoint == "refreshSchedule": #sub_api_endpoint is refreshSchedule the process since the response is a json object
+                            items = response_data
+                            items['object_id'] = obj_id
+                            all_data.append(response_data)
+                        else:
+                            items = response_data.get('value', [])
+                            for item in items:
+                                item['object_id'] = obj_id
+                            all_data.extend(items)
+                    elif isinstance(response_data, list):
+                        for item in items:
+                                item['object_id'] = obj_id
+                        all_data.extend(response_data)    
+                elif status_code == 403:
+                    print(f"Skipping item user does not have access to {group_id}")
+                    continue
+                elif status_code == 415:
+                        print(f"Invalid dataset for group {group_id}. this API can only be called on a Model-based dataset")
+                        continue
+            except Exception as e:
+                print(f"unexpected error {e} for group {group_id}")
+       
+    return all_data
 
-    if object_type is not None and sub_api_endpoint is None:
-        json_object = get_all_object_id_for_each_object_type(access_token, object_type, key_id)
-    elif api_flag is not None:
-        json_object = group_ids[1]    
-    elif sub_api_endpoint is not None and object_type is not None and api_flag is None:
-        json_object = get_object_type_items(access_token, object_type, key_id, sub_api_endpoint)
-  
-    json_string = json.dumps(json_object)
-    json_rdd = spark.sparkContext.parallelize([json_string])
-    spark_df = spark.read.option("multiLine", True).json(json_rdd)
-    # spark_df = spark.read.json(json_rdd)
-
-    #Add LastModified column to the dataframe
-    spark_df = spark_df.withColumn("LastModified", lit(timestamp))
-    
-    if spark.catalog.tableExists(table_name):
-        table_columns = [col.name for col in spark.table(table_name).schema]
-        spark_df = spark_df.withColumn("InsertTime", lit(timestamp))
-
-        print(f"Table {table_name} exists, updating")
-        spark_df.createOrReplaceTempView('new_data')
-        
-        #Get column names for updating and inserting, only use existing columns
-        # columns = [col for col in spark_df.columns if col in table_columns]
-        update_columns = ", ".join([f"t.{col} = n.{col}" for col in table_columns]) # create the update column column mapping
-
-        merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
-
-        merge_query = f"""
-        MERGE INTO {table_name} AS t
-        USING new_data AS n
-        ON {merge_condition}
-        WHEN MATCHED THEN 
-        UPDATE SET {update_columns}
-        WHEN NOT MATCHED THEN 
-        INSERT *
-        """
-    else: 
-        print(f"Table {table_name} does not exist. Creating a new table.")
-
-        spark_df = spark_df.withColumn("InsertTime", lit(timestamp))
-        spark_df.write.format("delta").saveAsTable(table_name)
+get_object_type_items(access_token, "datasets", "id", "refreshes")
