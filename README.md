@@ -1,53 +1,124 @@
-def create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag=None, object_type=None, key_id=None, sub_api_endpoint=None):
+"""
+checking if table exists
+"""
+
+def table_exists(table_name):
+    try:
+        table(table_name)
+        return True
+    except:
+        return False
+
+
+def getDateLoop(start, end):
 
     """
-    create Dataframe from json data and update or merge the data to delta table
-    api_flag (e.g groups)
+    the function loops and generates a list of date ranges between start and end datetime
+    in ISO format
     """
 
-    #Fetch the current timetamp
-    timestamp = dt.utcnow().isoformat()
+    # For each day between start and end, yield a string in 'yyyy-mm-ddThh:mm:ssZ' format
+    days = (end.date() - start.date()).days+1
+    
 
-    if object_type is not None and sub_api_endpoint is None:
-        json_object = get_all_object_id_for_each_object_type(access_token, object_type, key_id)
-    elif api_flag is not None:
-        json_object = groups_data
-    elif sub_api_endpoint is not None and object_type is not None and api_flag is None:
-        json_object = get_object_type_items(access_token, object_type, key_id, sub_api_endpoint)
-  
-    json_string = json.dumps(json_object)
-    json_rdd = spark.sparkContext.parallelize([json_string])
-    spark_df = spark.read.option("multiLine", True).json(json_rdd)
+    dateList = []
 
-    if "@odata.context" in spark_df.columns:
-        spark_df = spark_df.drop("@odata.context")
+    for d in range(0, days):
+        date = start+datetime.timedelta(days=d)
+        if days == 1:
+            dateList.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
+        elif d == days-1:
+            dateList.append((date.strftime("'%Y-%m-%dT00:00:00Z'"),end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
+        elif d == 0:
+            dateList.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
+        else:
+            dateList.append((date.strftime("'%Y-%m-%dT00:00:00Z'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
+    
+    return dateList
 
-    spark_df.display()
+def getResultForQuery(token, start=None, end=None, ct=None, ln=None):
+    """
+    Function interacts with activity events API and save the 
+    results to a json file in Databricks file system(DBFS)
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+    if ct is None:
+        url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?startDateTime={start}&endDateTime={end}'
+    else:
+        url= f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?continuationToken=\'{ct}\''
+    
+    response = requests.get(url, headers=headers)
 
-    # #Add LastModified column to the dataframe
-    # spark_df = spark_df.withColumn("LastModified", to_timestamp(lit(timestamp)))
-    # spark_df = spark_df.withColumn("InsertTime", to_timestamp(lit(timestamp)))
+    if response.status_code != 200:
+        print(f"Error: {response.status_code}, {response.text}")
+        return (None, None)
 
-    # if spark.catalog.tableExists(table_name):
-    #     table_columns = [col.name for col in spark.table(table_name).schema]
-        
-    #     print(f"Table {table_name} exists, updating")
-    #     spark_df.createOrReplaceTempView('new_data')
+    responseJSON = json.loads(response.text)
+    lastResultSet = responseJSON['lastResultSet']
+    continuationToken = responseJSON['continuationToken']
+    entities = responseJSON['activityEventEntities']
+    startStr = start.replace("'", "").split('T')[0] # Formating the start date by removing any single quotes and the time part "T"
 
-    #     update_columns = ", ".join([f"t.{col} = n.{col}" for col in table_columns if col != "InsertTime"]) # create the update column column mapping
+    volume_path = f'dbfs:/Volumes/{env}/bronze/powerbi/PBIAdminEvents_{startStr}_{ln or "0"}.json'
+    dbutils.fs.put(volume_path, json.dumps(entities), overwrite=True)
 
-    #     merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
+    return (lastResultSet, continuationToken)
 
-    #     merge_query = f"""
-    #     MERGE INTO {table_name} AS t
-    #     USING new_data AS n
-    #     ON {merge_condition}
-    #     WHEN MATCHED THEN 
-    #     UPDATE SET {update_columns}
-    #     WHEN NOT MATCHED THEN 
-    #     INSERT *
-    #     """
-    #     spark.sql(merge_query)
-    # else: 
-    #     print(f"Table {table_name} does not exist. Creating a new table.")
-    #     spark_df.write.format("delta").saveAsTable(table_name)
+"""
+checking if table exist and setting a staerDateTime
+"""
+
+tableExists = table_exists('bronze.pbi_activity_event')
+
+endDateTime = datetime.datetime.now()
+
+if not tableExists:
+    startDateTime = endDateTime - datetime.timedelta(days=29)
+else:
+    startDateTime = table('bronze.pbi_activity_event').select(col('CreationTime').cast(TimestampType())).agg({'CreationTime': 'max'}).first()[0]
+
+
+
+for (start, end) in dateLoop:
+    print(start,end)
+    lastResultSet = None
+    continuationToken = None
+    lastResultSet, continuationToken = getResultForQuery(access_token, start=start, end=end)
+    loopNumber = 1
+    while lastResultSet == False:
+        lastResultSet, continuationToken = getResultForQuery(access_token, start=start, ct=continuationToken, ln=loopNumber)
+        loopNumber += 1
+
+"""
+Creating a dataframe from the json data and saving it to delta table
+"""
+timestamp = dt.utcnow().isoformat()
+
+file_path = f'/Volumes/{env}/bronze/powerbi/*.json'
+df = spark.read.json(file_path)
+df = df.withColumn('LastModified', lit(timestamp))#add last modfied time with the curent timestamp
+df = df.withColumn('insertTime', lit(timestamp))#add last inserted time with the curent timestamp
+df = df.withColumn('SharingInformation', when(col('SharingInformation') == lit([]), None).otherwise(col('SharingInformation')))
+if df.filter(col('SharingInformation').isNotNull()).count() == 0:
+    df = df.drop('SharingInformation')
+
+if tableExists != True:
+    print('Table Doesnt Exist')
+    df.write.mode('overwrite').format('delta').saveAsTable('bronze.pbi_activity_event')
+else:
+    print('Table Exists')
+    rmove = df.join(table('bronze.pbi_activity_event'), 'ID', 'inner').select('ID').collect()
+    ids = []
+    for r in rmove:
+        ids.append("'"+r[0]+"'")
+    print(len(ids))
+    if len(ids) > 0:
+        spark.sql(f'DELETE FROM bronze.pbi_activity_event WHERE ID IN ({",".join(ids)})')
+    df.write.mode('append').format('delta').option('mergeSchema', True).saveAsTable('bronze.pbi_activity_event')
+
+
+for f in dbutils.fs.ls(f'/Volumes/{env}/bronze/powerbi/*.json'):
+    dbutils.fs.rm(f.path)
