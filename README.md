@@ -1,30 +1,27 @@
- MERGE INTO bronze.pbi_datasets_refreshschedule AS t
-        USING new_data AS n
-        ON t.days = n.days
-        WHEN MATCHED THEN 
-        UPDATE SET t.``@odata.context`` = n.``@odata.context``, t.days = n.days, t.enabled = n.enabled, t.id = n.id, t.localTimeZoneId = n.localTimeZoneId, t.notifyOption = n.notifyOption, t.times = n.times, t.LastModified = n.LastModified
-        WHEN NOT MATCHED THEN 
-        INSERT (``@odata.context``, days, enabled, id, localTimeZoneId, notifyOption, times, LastModified, InsertTime)
-        VALUES (n.``@odata.context``, n.days, n.enabled, n.id, n.localTimeZoneId, n.notifyOption, n.times, n.LastModified, n.InsertTime)
-
-
-
-
-        [PARSE_SYNTAX_ERROR] Syntax error at or near '@'. SQLSTATE: 42601
-File <command-3684298126601210>, line 2
-      1 print("Running datasets refreshschedule Power BI API Call")
-----> 2 create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_datasets_refreshschedule", primary_key=["days"],api_flag=None, object_type="datasets", key_id="id", sub_api_endpoint="refreshSchedule")
-File <command-3301156189242308>, line 68, in create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag, object_type, key_id, sub_api_endpoint)
-     58     # merge_query = f"""
-     59     # MERGE INTO {table_name} AS t
-     60     # USING new_data AS n
+[DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE] Cannot perform Merge as multiple source rows matched and attempted to modify the same
+target row in the Delta table in possibly conflicting ways. By SQL semantics of Merge,
+when multiple source rows match on the same target row, the result may be ambiguous
+as it is unclear which source row should be used to update or delete the matching
+target row. You can preprocess the source table to eliminate the possibility of
+multiple matches. Please refer to
+https://docs.microsoft.com/azure/databricks/delta/merge#merge-error SQLSTATE: 21506
+File <command-3301156189241972>, line 12
+     10 #getting data and creating or updataing the table for reports
+     11 print("Running reports Power BI API Call")
+---> 12 create_dataframe_and_update_or_merge_table(access_token, table_name="bronze.pbi_reports", primary_key=["id"],api_flag=None, object_type="reports")
+     14 print("Running datataflows Power BI API Call")
+     15 create_dataframe_and_update_or_merge_table(access_token,table_name="bronze.pbi_dataflows",primary_key=["objectId"], api_flag=None, object_type="dataflows")
+File <command-3301156189241971>, line 50, in create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag, object_type, key_id, sub_api_endpoint)
+     39     merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
+     41     merge_query = f"""
+     42     MERGE INTO {table_name} AS t
+     43     USING new_data AS n
    (...)
-     65     # INSERT *
-     66     # """
-     67     print(merge_query)
----> 68     spark.sql(merge_query)
-     69 else: 
-     70     print(f"Table {table_name} does not exist. Creating a new table.")
+     48     INSERT *
+     49     """
+---> 50     spark.sql(merge_query)
+     51 else: 
+     52     print(f"Table {table_name} does not exist. Creating a new table.")
 File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
      45 start = time.perf_counter()
      46 try:
