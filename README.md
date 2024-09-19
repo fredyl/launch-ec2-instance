@@ -1,59 +1,53 @@
-[DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE] Cannot perform Merge as multiple source rows matched and attempted to modify the same
-target row in the Delta table in possibly conflicting ways. By SQL semantics of Merge,
-when multiple source rows match on the same target row, the result may be ambiguous
-as it is unclear which source row should be used to update or delete the matching
-target row. You can preprocess the source table to eliminate the possibility of
-multiple matches. Please refer to
-https://docs.microsoft.com/azure/databricks/delta/merge#merge-error SQLSTATE: 21506
-File <command-3301156189241972>, line 12
-     10 #getting data and creating or updataing the table for reports
-     11 print("Running reports Power BI API Call")
----> 12 create_dataframe_and_update_or_merge_table(access_token, table_name="bronze.pbi_reports", primary_key=["id"],api_flag=None, object_type="reports")
-     14 print("Running datataflows Power BI API Call")
-     15 create_dataframe_and_update_or_merge_table(access_token,table_name="bronze.pbi_dataflows",primary_key=["objectId"], api_flag=None, object_type="dataflows")
-File <command-3301156189241971>, line 50, in create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag, object_type, key_id, sub_api_endpoint)
-     39     merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
-     41     merge_query = f"""
-     42     MERGE INTO {table_name} AS t
-     43     USING new_data AS n
-   (...)
-     48     INSERT *
-     49     """
----> 50     spark.sql(merge_query)
-     51 else: 
-     52     print(f"Table {table_name} does not exist. Creating a new table.")
-File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
-     45 start = time.perf_counter()
-     46 try:
----> 47     res = func(*args, **kwargs)
-     48     logger.log_success(
-     49         module_name, class_name, function_name, time.perf_counter() - start, signature
-     50     )
-     51     return res
-File /databricks/spark/python/pyspark/sql/session.py:1825, in SparkSession.sql(self, sqlQuery, args, **kwargs)
-   1820     else:
-   1821         raise PySparkTypeError(
-   1822             error_class="INVALID_TYPE",
-   1823             message_parameters={"arg_name": "args", "arg_type": type(args).__name__},
-   1824         )
--> 1825     return DataFrame(self._jsparkSession.sql(sqlQuery, litArgs), self)
-   1826 finally:
-   1827     if len(kwargs) > 0:
-File /databricks/spark/python/lib/py4j-0.10.9.7-src.zip/py4j/java_gateway.py:1355, in JavaMember.__call__(self, *args)
-   1349 command = proto.CALL_COMMAND_NAME +\
-   1350     self.command_header +\
-   1351     args_command +\
-   1352     proto.END_COMMAND_PART
-   1354 answer = self.gateway_client.send_command(command)
--> 1355 return_value = get_return_value(
-   1356     answer, self.gateway_client, self.target_id, self.name)
-   1358 for temp_arg in temp_args:
-   1359     if hasattr(temp_arg, "_detach"):
-File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
-    257 converted = convert_exception(e.java_exception)
-    258 if not isinstance(converted, UnknownException):
-    259     # Hide where the exception came from that shows a non-Pythonic
-    260     # JVM exception message.
---> 261     raise converted from None
-    262 else:
-    263     raise
+def create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag=None, object_type=None, key_id=None, sub_api_endpoint=None):
+
+    """
+    create Dataframe from json data and update or merge the data to delta table
+    api_flag (e.g groups)
+    """
+
+    #Fetch the current timetamp
+    timestamp = dt.utcnow().isoformat()
+
+    if object_type is not None and sub_api_endpoint is None:
+        json_object = get_all_object_id_for_each_object_type(access_token, object_type, key_id)
+    elif api_flag is not None:
+        json_object = groups_data
+    elif sub_api_endpoint is not None and object_type is not None and api_flag is None:
+        json_object = get_object_type_items(access_token, object_type, key_id, sub_api_endpoint)
+  
+    json_string = json.dumps(json_object)
+    json_rdd = spark.sparkContext.parallelize([json_string])
+    spark_df = spark.read.option("multiLine", True).json(json_rdd)
+
+    if "@odata.context" in spark_df.columns:
+        spark_df = spark_df.drop("@odata.context")
+
+    spark_df.display()
+
+    # #Add LastModified column to the dataframe
+    # spark_df = spark_df.withColumn("LastModified", to_timestamp(lit(timestamp)))
+    # spark_df = spark_df.withColumn("InsertTime", to_timestamp(lit(timestamp)))
+
+    # if spark.catalog.tableExists(table_name):
+    #     table_columns = [col.name for col in spark.table(table_name).schema]
+        
+    #     print(f"Table {table_name} exists, updating")
+    #     spark_df.createOrReplaceTempView('new_data')
+
+    #     update_columns = ", ".join([f"t.{col} = n.{col}" for col in table_columns if col != "InsertTime"]) # create the update column column mapping
+
+    #     merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
+
+    #     merge_query = f"""
+    #     MERGE INTO {table_name} AS t
+    #     USING new_data AS n
+    #     ON {merge_condition}
+    #     WHEN MATCHED THEN 
+    #     UPDATE SET {update_columns}
+    #     WHEN NOT MATCHED THEN 
+    #     INSERT *
+    #     """
+    #     spark.sql(merge_query)
+    # else: 
+    #     print(f"Table {table_name} does not exist. Creating a new table.")
+    #     spark_df.write.format("delta").saveAsTable(table_name)
