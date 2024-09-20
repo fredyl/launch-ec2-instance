@@ -1,82 +1,80 @@
-The spark driver has stopped unexpectedly and is restarting. Your notebook will be automatically reattached.
-	at com.databricks.spark.chauffeur.Chauffeur.onDriverStateChange(Chauffeur.scala:1530)
-	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
-
-
+import datetime
+import json
+import requests
+from pyspark.sql.functions import col, lit, when
 
 """
-checking if table exists
+Checking if the table exists
 """
-
 def table_exists(table_name):
     try:
-        table(table_name)
+        spark.table(table_name)  # Changed 'table' to 'spark.table'
         return True
     except:
         return False
 
 
+"""
+Optimized Date Loop function
+"""
 def getDateLoop(start, end):
-
-    """
-    the function loops and generates a list of date ranges between start and end datetime
-    in ISO format
-    """
-
-    # For each day between start and end, yield a string in 'yyyy-mm-ddThh:mm:ssZ' format
-    days = (end.date() - start.date()).days+1
+    days = (end.date() - start.date()).days + 1
+    date_list = []
     
-
-    dateList = []
-
-    for d in range(0, days):
-        date = start+datetime.timedelta(days=d)
+    for d in range(days):
+        date = start + datetime.timedelta(days=d)
         if days == 1:
-            dateList.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
-        elif d == days-1:
-            dateList.append((date.strftime("'%Y-%m-%dT00:00:00Z'"),end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
+            date_list.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
+        elif d == days - 1:
+            date_list.append((date.strftime("'%Y-%m-%dT00:00:00Z'"), end.strftime("'%Y-%m-%dT%H:%M:%SZ'")))
         elif d == 0:
-            dateList.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
+            date_list.append((start.strftime("'%Y-%m-%dT%H:%M:%SZ'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
         else:
-            dateList.append((date.strftime("'%Y-%m-%dT00:00:00Z'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
+            date_list.append((date.strftime("'%Y-%m-%dT00:00:00Z'"), date.strftime("'%Y-%m-%dT23:59:59Z'")))
     
-    return dateList
+    return date_list
 
-def getResultForQuery(token, start=None, end=None, ct=None, ln=None):
-    """
-    Function interacts with activity events API and save the 
-    results to a json file in Databricks file system(DBFS)
-    """
+
+"""
+Optimized getResultForQuery function
+- Batching results and writing at the end to reduce I/O operations
+"""
+def getResultForQuery(token, start=None, end=None, ct=None):
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {token}"
     }
-    if ct is None:
-        url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?startDateTime={start}&endDateTime={end}'
-    else:
-        url= f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?continuationToken=\'{ct}\''
     
-    response = requests.get(url, headers=headers)
+    results = []  # Collect results for batch writing
+    while True:
+        if ct is None:
+            url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?startDateTime={start}&endDateTime={end}'
+        else:
+            url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?continuationToken={ct}'
+        
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            print(f"Error: {response.status_code}, {response.text}")
+            break
 
-    if response.status_code != 200:
-        print(f"Error: {response.status_code}, {response.text}")
-        return (None, None)
+        responseJSON = response.json()
+        results.append(responseJSON['activityEventEntities'])
+        
+        if 'continuationToken' not in responseJSON:
+            break
+        ct = responseJSON['continuationToken']
 
-    responseJSON = json.loads(response.text)
-    lastResultSet = responseJSON['lastResultSet']
-    continuationToken = responseJSON['continuationToken']
-    entities = responseJSON['activityEventEntities']
-    startStr = start.replace("'", "").split('T')[0] # Formating the start date by removing any single quotes and the time part "T"
+    # Writing results in bulk to a single JSON file
+    startStr = start.replace("'", "").split('T')[0]
+    volume_path = f'dbfs:/Volumes/{env}/bronze/powerbi/PBIAdminEvents_{startStr}.json'
+    dbutils.fs.put(volume_path, json.dumps(results), overwrite=True)
+    
+    return (responseJSON.get('lastResultSet', False), responseJSON.get('continuationToken', None))
 
-    volume_path = f'dbfs:/Volumes/{env}/bronze/powerbi/PBIAdminEvents_{startStr}_{ln or "0"}.json'
-    dbutils.fs.put(volume_path, json.dumps(entities), overwrite=True)
-
-    return (lastResultSet, continuationToken)
 
 """
-checking if table exist and setting a staerDateTime
+Checking if the table exists and setting startDateTime
 """
-
 tableExists = table_exists('bronze.pbi_activity_event')
 
 endDateTime = datetime.datetime.now()
@@ -84,48 +82,52 @@ endDateTime = datetime.datetime.now()
 if not tableExists:
     startDateTime = endDateTime - datetime.timedelta(days=29)
 else:
-    startDateTime = table('bronze.pbi_activity_event').select(col('CreationTime').cast(TimestampType())).agg({'CreationTime': 'max'}).first()[0]
-
+    # Optimized aggregation to fetch the max CreationTime
+    startDateTime = spark.table('bronze.pbi_activity_event').select(col('CreationTime').cast(TimestampType())).agg({'CreationTime': 'max'}).first()[0]
 
 dateLoop = getDateLoop(startDateTime, endDateTime)
 
 for (start, end) in dateLoop:
-    print(start,end)
-    lastResultSet = None
-    continuationToken = None
+    print(start, end)
     lastResultSet, continuationToken = getResultForQuery(access_token, start=start, end=end)
     loopNumber = 1
     while lastResultSet == False:
-        lastResultSet, continuationToken = getResultForQuery(access_token, start=start, ct=continuationToken, ln=loopNumber)
+        lastResultSet, continuationToken = getResultForQuery(access_token, start=start, ct=continuationToken)
         loopNumber += 1
 
 """
-Creating a dataframe from the json data and saving it to delta table
+Creating a DataFrame from the JSON data and saving it to Delta table
 """
-timestamp = dt.utcnow().isoformat()
+timestamp = datetime.datetime.utcnow().isoformat()
 
+# Optimized reading JSON files into DataFrame with repartitioning
 file_path = f'/Volumes/{env}/bronze/powerbi/*.json'
-df = spark.read.json(file_path)
-df = df.withColumn('LastModified', lit(timestamp))#add last modfied time with the curent timestamp
-df = df.withColumn('insertTime', lit(timestamp))#add last inserted time with the curent timestamp
+df = spark.read.json(file_path).repartition(10)  # Repartition to improve performance
+
+# Adding timestamp columns
+df = df.withColumn('LastModified', lit(timestamp))
+df = df.withColumn('insertTime', lit(timestamp))
+
+# Dropping 'SharingInformation' if empty
 df = df.withColumn('SharingInformation', when(col('SharingInformation') == lit([]), None).otherwise(col('SharingInformation')))
 if df.filter(col('SharingInformation').isNotNull()).count() == 0:
     df = df.drop('SharingInformation')
 
-if tableExists != True:
+# Optimized Delta Table merge logic
+if not tableExists:
     print('Table Doesnt Exist')
     df.write.mode('overwrite').format('delta').saveAsTable('bronze.pbi_activity_event')
 else:
     print('Table Exists')
-    rmove = df.join(table('bronze.pbi_activity_event'), 'ID', 'inner').select('ID').collect()
-    ids = []
-    for r in rmove:
-        ids.append("'"+r[0]+"'")
-    print(len(ids))
-    if len(ids) > 0:
-        spark.sql(f'DELETE FROM bronze.pbi_activity_event WHERE ID IN ({",".join(ids)})')
-    df.write.mode('append').format('delta').option('mergeSchema', True).saveAsTable('bronze.pbi_activity_event')
+    
+    # Use Delta Merge instead of collecting IDs for deletion
+    df.alias('new').merge(
+        spark.table('bronze.pbi_activity_event').alias('existing'),
+        'new.ID = existing.ID'
+    ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
-
+"""
+Clean up JSON files from DBFS after processing
+"""
 for f in dbutils.fs.ls(f'/Volumes/{env}/bronze/powerbi/*.json'):
     dbutils.fs.rm(f.path)
