@@ -1,16 +1,28 @@
-'2024-09-09T18:48:04Z' '2024-09-09T23:59:59Z'
-Error: 400, {"error":{"code":"BadRequest","message":"Bad Request","details":[{"message":"Expected literal type token but found token 'eyJTdGFydERhdGVUaW1lIjoiMjAyNC0wOS0wOVQxODo0ODowNC4wMDAwMDAwXHUwMDJCMDA6MDAiLCJFbmREYXRlVGltZSI6IjIwMjQtMDktMDlUMjM6NTk6NTkuMDAwMDAwMFx1MDAyQjAwOjAwIiwiRmlsZU5hbWUiOiIyMDI0LTA5LTA5VDE5X3YxXzAwMS5jc3YiLCJGaWxlT2Zmc2V0IjowLCJBY3Rpdml0eSI6bnVsbCwiVXNlcklkIjpudWxsfSwyMDI0LTA5LTA5VDE4OjQ4OjA0LjAwMDAwMDArMDA6MDAsMjAyNC0wOS0wOVQyMzo1OTo1OS4wMDAwMDAwKzAwOjAwLDAsLA'.","target":"continuationToken"}]}}
-Wrote 659867 bytes.
-Error: 400, {"error":{"code":"BadRequest","message":"Bad Request","details":[{"message":"Expected literal type token but found token 'eyJTdGFydERhdGVUaW1lIjoiMjAyNC0wOS0wOVQxODo0ODowNC4wMDAwMDAwXHUwMDJCMDA6MDAiLCJFbmREYXRlVGltZSI6IjIwMjQtMDktMDlUMjM6NTk6NTkuMDAwMDAwMFx1MDAyQjAwOjAwIiwiRmlsZU5hbWUiOiIyMDI0LTA5LTA5VDE5X3YxXzAwMS5jc3YiLCJGaWxlT2Zmc2V0IjowLCJBY3Rpdml0eSI6bnVsbCwiVXNlcklkIjpudWxsfSwyMDI0LTA5LTA5VDE4OjQ4OjA0LjAwMDAwMDArMDA6MDAsMjAyNC0wOS0wOVQyMzo1OTo1OS4wMDAwMDAwKzAwOjAwLDAsLA'.","target":"continuationToken"}]}}
-Wrote 2 bytes.
+def getResultForQuery(token, start=None, end=None, ct=None):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+    
+    if ct is None:
+        url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?startDateTime={start}&endDateTime={end}'
+    else:
+        # Pass the continuation token exactly as it is, without quotes
+        url = f'https://api.powerbi.com/v1.0/myorg/admin/activityevents?continuationToken={ct}'
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        print(f"Error: {response.status_code}, {response.text}")
+        return (None, None)
 
+    responseJSON = response.json()
+    lastResultSet = responseJSON.get('lastResultSet', False)
+    continuationToken = responseJSON.get('continuationToken', None)
+    
+    # Save the response JSON to DBFS
+    startStr = start.replace("'", "").split('T')[0]  # Format start date
+    volume_path = f'dbfs:/Volumes/{env}/bronze/powerbi/PBIAdminEvents_{startStr}_{loopNumber or "0"}.json'
+    dbutils.fs.put(volume_path, json.dumps(responseJSON['activityEventEntities']), overwrite=True)
 
-dateLoop = getDateLoop(startDateTime, endDateTime)
-
-for (start, end) in dateLoop:
-    print(start, end)
-    lastResultSet, continuationToken = getResultForQuery(access_token, start=start, end=end)
-    loopNumber = 1
-    while lastResultSet == False:
-        lastResultSet, continuationToken = getResultForQuery(access_token, start=start, ct=continuationToken)
-        loopNumber += 1
+    return (lastResultSet, continuationToken)
