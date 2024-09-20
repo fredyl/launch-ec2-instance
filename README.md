@@ -1,50 +1,134 @@
-[DELTA_MERGE_UNRESOLVED_EXPRESSION] Cannot resolve t.group_id in search condition given columns t.endTime, t.id, t.refreshAttempts, t.refreshType, t.requestId, t.serviceExceptionJson, t.startTime, t.status, t.LastModified, t.InsertTime, n.endTime, n.group_id, n.id, n.refreshAttempts, n.refreshType, n.requestId, n.serviceExceptionJson, n.startTime, n.status, n.LastModified, n.InsertTime. SQLSTATE: 42601
-File <command-3684298126602363>, line 2
-      1 print("Running datasets refreshes Power BI API Call")
-----> 2 create_dataframe_and_update_or_merge_table(access_token=access_token, table_name="bronze.pbi_datasets_refreshes", primary_key=["requestId", "group_id"],api_flag=None, object_type="datasets", key_id="id", sub_api_endpoint="refreshes")
-File <command-3301156189241440>, line 52, in create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag, object_type, key_id, sub_api_endpoint)
-     42     merge_query = f"""
-     43     MERGE INTO {table_name} AS t
-     44     USING new_data AS n
-   (...)
-     49     INSERT *
-     50     """
-     51     # print(merge_query)
----> 52     spark.sql(merge_query)
-     53 else: 
-     54     print(f"Table {table_name} does not exist. Creating a new table.")
-File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
-     45 start = time.perf_counter()
-     46 try:
----> 47     res = func(*args, **kwargs)
-     48     logger.log_success(
-     49         module_name, class_name, function_name, time.perf_counter() - start, signature
-     50     )
-     51     return res
-File /databricks/spark/python/pyspark/sql/session.py:1825, in SparkSession.sql(self, sqlQuery, args, **kwargs)
-   1820     else:
-   1821         raise PySparkTypeError(
-   1822             error_class="INVALID_TYPE",
-   1823             message_parameters={"arg_name": "args", "arg_type": type(args).__name__},
-   1824         )
--> 1825     return DataFrame(self._jsparkSession.sql(sqlQuery, litArgs), self)
-   1826 finally:
-   1827     if len(kwargs) > 0:
-File /databricks/spark/python/lib/py4j-0.10.9.7-src.zip/py4j/java_gateway.py:1355, in JavaMember.__call__(self, *args)
-   1349 command = proto.CALL_COMMAND_NAME +\
-   1350     self.command_header +\
-   1351     args_command +\
-   1352     proto.END_COMMAND_PART
-   1354 answer = self.gateway_client.send_command(command)
--> 1355 return_value = get_return_value(
-   1356     answer, self.gateway_client, self.target_id, self.name)
-   1358 for temp_arg in temp_args:
-   1359     if hasattr(temp_arg, "_detach"):
-File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
-    257 converted = convert_exception(e.java_exception)
-    258 if not isinstance(converted, UnknownException):
-    259     # Hide where the exception came from that shows a non-Pythonic
-    260     # JVM exception message.
---> 261     raise converted from None
-    262 else:
-    263     raise
+
+
+
+
+
+
+
+def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint):
+    """
+    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
+    object_id's
+    """
+    
+    group_id_and_object_id_dict = get_item_ids_for_all_groups(access_token, group_ids, object_type, object_id)
+    all_data = []
+
+    for group_id, object_ids in group_id_and_object_id_dict.items():
+        if not object_ids:
+            print(f"Skipping group {group_id} as it has no {object_type}s")
+            continue
+        for obj_id in object_ids:
+            endpoint= f"/groups/{group_id}/{object_type}/{obj_id}/{sub_api_endpoint}"
+            try:
+                response_data, status_code = call_powerbi_api(access_token, endpoint)
+                # response_data= call_powerbi_api(access_token, endpoint)[0]
+                # status_code = call_powerbi_api(access_token, endpoint)[1]
+                if status_code == 200:
+                    if isinstance(response_data, dict):
+                        items = [response_data] if sub_api_endpoint == 'refreshSchedule' else response_data.get('value', [])
+                    elif isinstance(response_data, list):
+                        items = response_data
+                    else:
+                        items = []
+                    for item in items:
+                        item['group_id'] = group_id
+                        item['object_id'] = obj_id
+                    all_data.extend(items)
+            except Exception as e:
+                print(f"unexpected error {e} for group {group_id}")
+       
+    return all_data
+
+
+
+
+def get_object_type_items(access_token, object_type, object_id, sub_api_endpoint):
+    """
+    retrieves items from object_type (e.g. datasets, reports, dataflows) based on the
+    object_id's
+    """
+    
+    group_id_and_object_id_dict = get_item_ids_for_all_groups(access_token, group_ids, object_type, object_id)
+    all_data = []
+
+    for group_id, object_ids in group_id_and_object_id_dict.items():
+        if not object_ids:
+            print(f"Skipping group {group_id} as it has no {object_type}s")
+            continue
+        for obj_id in object_ids:
+            endpoint= f"/groups/{group_id}/{object_type}/{obj_id}/{sub_api_endpoint}"
+            try:
+                response_data, status_code = call_powerbi_api(access_token, endpoint)
+                # response_data= call_powerbi_api(access_token, endpoint)[0]
+                # status_code = call_powerbi_api(access_token, endpoint)[1]
+                if status_code == 200:
+                    if isinstance(response_data, dict):
+                        items = [response_data] if sub_api_endpoint == 'refreshSchedule' else response_data.get('value', [])
+                    elif isinstance(response_data, list):
+                        items = response_data
+                    else:
+                        items = []
+                    for item in items:
+                        item['group_id'] = group_id
+                        item['object_id'] = obj_id
+                    all_data.extend(items)
+            except Exception as e:
+                print(f"unexpected error {e} for group {group_id}")
+       
+    return all_data
+
+
+
+def create_dataframe_and_update_or_merge_table(access_token, table_name, primary_key, api_flag=None, object_type=None, key_id=None, sub_api_endpoint=None):
+
+    """
+    create Dataframe from json data and update or merge the data to delta table
+    api_flag (e.g groups)
+    """
+    #Fetch the current timetamp
+    timestamp = datetime.utcnow().isoformat()
+
+    if object_type is not None and sub_api_endpoint is None:
+        json_object = get_all_object_id_for_each_object_type(access_token, object_type, key_id)
+    elif api_flag is not None:
+        json_object = groups_data
+    elif sub_api_endpoint is not None and object_type is not None and api_flag is None:
+        json_object = get_object_type_items(access_token, object_type, key_id, sub_api_endpoint)
+  
+    json_string = json.dumps(json_object)
+    json_rdd = spark.sparkContext.parallelize([json_string])
+    spark_df = spark.read.option("multiLine", True).json(json_rdd)
+
+    if "@odata.context" in spark_df.columns:
+        spark_df = spark_df.drop("@odata.context")
+
+    spark_df = spark_df.withColumn("unique_key", expr("substring(uuid(), 1, 20)"))
+   #Add LastModified column to the dataframe
+    spark_df = spark_df.withColumn("LastModified", to_timestamp(lit(timestamp)))
+    spark_df = spark_df.withColumn("InsertTime", to_timestamp(lit(timestamp)))
+
+    if spark.catalog.tableExists(table_name):
+        table_columns = [col.name for col in spark.table(table_name).schema]
+        
+        print(f"Table {table_name} exists, updating")
+        spark_df.createOrReplaceTempView('new_data')
+
+        update_columns = ", ".join([f"t.{col} = n.{col}" for col in table_columns if col != "InsertTime"]) # create the update column column mapping
+       
+        merge_condition = " AND ".join([f"t.{col} = n.{col}" for col in primary_key])
+
+        merge_query = f"""
+        MERGE INTO {table_name} AS t
+        USING new_data AS n
+        ON {merge_condition}
+        WHEN MATCHED THEN 
+        UPDATE SET {update_columns}
+        WHEN NOT MATCHED THEN 
+        INSERT *
+        """
+        # print(merge_query)
+        spark.sql(merge_query)
+    else: 
+        print(f"Table {table_name} does not exist. Creating a new table.")
+        spark_df.write.format("delta").saveAsTable(table_name)
