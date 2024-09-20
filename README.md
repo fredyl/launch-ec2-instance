@@ -1,3 +1,9 @@
+The spark driver has stopped unexpectedly and is restarting. Your notebook will be automatically reattached.
+	at com.databricks.spark.chauffeur.Chauffeur.onDriverStateChange(Chauffeur.scala:1530)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+
+
+
 """
 checking if table exists
 """
