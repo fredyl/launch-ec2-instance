@@ -1,31 +1,22 @@
-def lytx_get_repoonse_from_event_api(endpoint):
-
-    base_url = "https://lytx-api.prod5.ph.lytx.com/video"
-    url = base_url + endpoint
-    headers = {
-        'x-apikey': "t6nu2xUgxpYyA3OUbzpxO6atDQYj1Lxy"  # Add a space between 'Bearer' and the token
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        response_data = response.json()
-        print(json.dumps(response_data, indent =4))
-    else:
-        raise Exception("Failed:", response.status_code, response.text)
-
-
-
-def statuses_api_response():
-    endpoint = "/safety​/events​/statuses"
-    
+def behaviors_api_response():
+    endpoint = "/safety/events/behaviors"
     response_data = lytx_get_repoonse_from_event_api(endpoint)
-    if response.status_code == 200:
-        response_data = response.json()
-        return response_data
-    else:
-        raise Exception("Failed:", response.status_code, response.text)
+    return response_data
+    print(response_data)
 
-# url = "https://lytx-api.prod5.ph.lytx.com/video/safety/events/behaviors"
-# output_data = test_get_repoonse_from_event_api(url)
-# spark_df = spark.createDataFrame(output_data)
+behaviors_api_response()
 
-test_get_repoonse_from_event_api()
+def triggersubtypes_api_response():
+    endpoint = "/safety/events/triggersubtypes"
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+    return response_data
+    print(response_data)
+
+triggersubtypes_api_response()
+
+def triggers_api_response():
+    endpoint = "/safety/events/triggers"
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+    return response_data
+    print(response_data)
+triggers_api_response()
