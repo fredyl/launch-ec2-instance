@@ -1,21 +1,31 @@
-[Lytx Events API Instructions-2020aug04.pdf](https://github.com/user-attachments/files/17080579/Lytx.Events.API.Instructions-2020aug04.pdf)
-[API - Developers Guide - v1.7 PUBLIC.pdf](https://github.com/user-attachments/files/17097947/API.-.Developers.Guide.-.v1.7.PUBLIC.pdf)
+def lytx_get_repoonse_from_event_api(endpoint):
+
+    base_url = "https://lytx-api.prod5.ph.lytx.com/video"
+    url = base_url + endpoint
+    headers = {
+        'x-apikey': "t6nu2xUgxpYyA3OUbzpxO6atDQYj1Lxy"  # Add a space between 'Bearer' and the token
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        response_data = response.json()
+        print(json.dumps(response_data, indent =4))
+    else:
+        raise Exception("Failed:", response.status_code, response.text)
 
 
-import requests
 
-url = "https://lytx-api.prod5.ph.lytx.com/video/events"
-secret = "t6nu2xUgxpYyA3OUbzpxO6atDQYj1Lxy"
-
-headers = {
-    'Authorization': f'Bearer {secret}'  # Add a space between 'Bearer' and the token
-}
-response = requests.get(url, headers=headers)
-if response.status_code == 200:
-    print("Success:", response.json())
-else:
-    raise Exception("Failed:", response.status_code, response.text)
+def statuses_api_response():
+    endpoint = "/safety​/events​/statuses"
     
-Exception: ('Failed:', 401, '{![image](https://github.com/user-attachments/assets/087a2349-e119-449d-be7c-3cad3c94de20)
-"message":"Unauthorized"}')<img width="680" alt="Screenshot 2024-09-23 114614" src="https://github.com/user-attachments/assets/9fca2121-c3ca-4411-90b7-d52c15c04e7f">
-<img width="740" alt="Screenshot 2024-09-23 114934" src="https://github.com/user-attachments/assets/a05e0ef4-61de-4526-91d2-4edfcb5ccd62">
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data
+    else:
+        raise Exception("Failed:", response.status_code, response.text)
+
+# url = "https://lytx-api.prod5.ph.lytx.com/video/safety/events/behaviors"
+# output_data = test_get_repoonse_from_event_api(url)
+# spark_df = spark.createDataFrame(output_data)
+
+test_get_repoonse_from_event_api()
