@@ -18,3 +18,4 @@ else:
     
 Exception: ('Failed:', 401, '{![image](https://github.com/user-attachments/assets/087a2349-e119-449d-be7c-3cad3c94de20)
 "message":"Unauthorized"}')<img width="680" alt="Screenshot 2024-09-23 114614" src="https://github.com/user-attachments/assets/9fca2121-c3ca-4411-90b7-d52c15c04e7f">
+<img width="740" alt="Screenshot 2024-09-23 114934" src="https://github.com/user-attachments/assets/a05e0ef4-61de-4526-91d2-4edfcb5ccd62">
