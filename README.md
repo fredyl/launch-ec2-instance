@@ -34,16 +34,25 @@ def statuses_api_response(parent_key='', sep= '_'):
         df = spark.createDataFrame(struct_response_data)
 
 
-[
-  {
-    "id": 5000175793,
-    "groupId": "5100ffff-60b615b0000",
-    "name": "01305",
-    "status": 16,
-    "isWaking": false,
-    "wakeable": false,
-    "lastCommunication": "2024-09-25T19:13:21.946906Z",
-    "devices": "[{\"id\": 5000183741, \"serialNumber\": \"QM40851679\", \"lastCommunication\": \"2024-09-25T19:13:21.9469304Z\", \"onlineStatus\": 16, \"views\": [{\"id\": 5000414052, \"name\": \"FORWARD\", \"label\": \"Outside\"}, {\"id\": 5000414053, \"name\": \"REAR\", \"label\": \"Inside\"}], \"capabilities\": [], \"roleId\": 1, \"supportedCommands\": [\"checkinv1\", \"clipdatav1\", \"datareqv1\", \"filerequestv1\", \"ftladdv1\", \"ftllistv1\", \"ftlremovev1\", \"getsyslogv1\", \"labv1\", \"locationv1\", \"moduleremovev1\", \"moduleupdatev1\", \"performupdatev1\", \"pingv1\", \"propertiesv1\", \"rawcamv1\", \"requestsettingsreportv1\", \"requestversionsv1\", \"restartcanv1\", \"settingsv1\", \"snapshotv2\", \"statev1\", \"streamdatav1\", \"streamresetv1\", \"streamvideov1\", \"timelinev1\", \"updateavailablev1\", \"videostatev1\"], \"hardwarePlatform\": \"SF400\"}]",
-    "dcVehicleId": "9100ffff-48a9-e8e15b0000"
-  }
-]
+current_time = current_timestamp()
+    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+
+    # Ensure `devices` is treated as a JSON string
+    df = df.withColumn("devices", col("devices").cast(StringType()))
+
+    # Attempt to parse the devices JSON column dynamically
+    try:
+        df = df.withColumn("devices_parsed", from_json(col("devices"), "array<struct<*>>"))
+    except Exception as e:
+        print(f"Error parsing devices: {e}")
+        # Fallback if parsing fails
+        df = df.withColumn("devices_parsed", col("devices"))
+
+    # Explode the `devices_parsed` array (if it contains multiple items)
+    df = df.withColumn("device", explode(col("devices_parsed")))
+
+    # Dynamically select columns (exploded fields + existing fields)
+    df = df.select("*", "device.*").drop("devices", "device", "devices_parsed")
+
+    # Display the DataFrame
+    df.display()
