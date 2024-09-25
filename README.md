@@ -32,68 +32,8 @@ def statuses_api_response(parent_key='', sep= '_'):
     rows = [Row(**data) for data in struct_response_data]
     if isinstance(struct_response_data, list):
         df = spark.createDataFrame(struct_response_data)
-[
-  {
-    "id": 5000175793,
-    "groupId": "5100ffff-6015b0000",
-    "name": "01305",
-    "status": 16,
-    "isWaking": false,
-    "wakeable": false,
-    "lastCommunication": "2024-09-25T19:35:32.3369544Z",
-    "devices": [
-      {
-        "id": 5000741,
-        "serialNumber": "QM4079",
-        "lastCommunication": "2024-09-25T19:35:32.3369777Z",
-        "onlineStatus": 16,
-        "views": [
-          {
-            "id": 5000052,
-            "name": "FORWARD",
-            "label": "Outside"
-          },
-          {
-            "id": 5000414053,
-            "name": "REAR",
-            "label": "Inside"
-          }
-        ],
-        "capabilities": [],
-        "roleId": 1,
-        "supportedCommands": [
-          "checkinv1",
-          "clipdatav1",
-          "datareqv1",
-          "filerequestv1",
-          "ftladdv1",
-          "ftllistv1",
-          "ftlremovev1",
-          "getsyslogv1",
-          "labv1",
-          "locationv1",
-          "moduleremovev1",
-          "moduleupdatev1",
-          "performupdatev1",
-          "pingv1",
-          "propertiesv1",
-          "rawcamv1",
-          "requestsettingsreportv1",
-          "requestversionsv1",
-          "restartcanv1",
-          "settingsv1",
-          "snapshotv2",
-          "statev1",
-          "streamdatav1",
-          "streamresetv1",
-          "streamvideov1",
-          "timelinev1",
-          "updateavailablev1",
-          "videostatev1"
-        ],
-        "hardwarePlatform": "SF400"
-      }
-    ],
-    "dcVehicleId": "9100ffff-45b0000"
-  }
-]
+ df = df.select(
+        "id", "groupId", "name", "status", "isWaking", "wakeable", "lastCommunication", "dcVehicleId", 
+        "device.id", "device.serialNumber", "device.lastCommunication", "device.onlineStatus", 
+        "device.views", "device.capabilities", "device.roleId", "device.supportedCommands", "device.hardwarePlatform"
+    )
