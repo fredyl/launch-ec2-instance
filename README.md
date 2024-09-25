@@ -33,8 +33,7 @@ def statuses_api_response(parent_key='', sep= '_'):
     if isinstance(struct_response_data, list):
         df = spark.createDataFrame(struct_response_data)
 
-
-    [CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
+[DATATYPE_MISMATCH.UNEXPECTED_INPUT_TYPE] Cannot resolve "explode(devices)" due to data type mismatch: The first parameter requires the ("ARRAY" or "MAP") type, however "devices" has the type "STRING". SQLSTATE: 42K09
 
 
     ![image](https://github.com/user-attachments/assets/59c012ec-1598-45fe-8f33-e7597209d927)
