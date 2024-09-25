@@ -77,3 +77,14 @@ for endpoint in endpoints:
         process_api_data_to_delta(endpoint, table_name)
     except Exception as e:
         print(f"Error with {endpoint}: {e}")
+
+
+
+def statuses_api_response():
+    endpoint = "/videos/safety/events/triggers"   
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+    return response_data
+    print(response_data)
+statuses_api_response()
+
+Exception: ('Failed:', 404, '{"message":"no Route matched with those values"}')
