@@ -1,5 +1,18 @@
+
+how can I use the below api endpoints to make a successful API get request with the below codes. Since I keep having an error 404
+
+"/videos/safety/events/behaviors",
+    "/videos/safety/events/triggersubtypes",
+    "/videos/safety/events/triggers",
+    "/videos/safety/eventsWithMetadata",
+    "/video/vehicles/",
+    "/vehicles/statuses",
+    "/vehicles/types",
+    "/vehicles"
+
+
 def lytx_get_repoonse_from_event_api(endpoint):
-    base_url = "https://lytx-api.prod5.ph.lytx.com/video"
+    base_url = "https://lytx-api.prod5.ph.lytx.com"
     url = base_url + endpoint
     headers = {
         'x-apikey': api_key
