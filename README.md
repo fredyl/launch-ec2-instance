@@ -33,10 +33,17 @@ def statuses_api_response(parent_key='', sep= '_'):
     if isinstance(struct_response_data, list):
         df = spark.createDataFrame(struct_response_data)
 
-[DATATYPE_MISMATCH.UNEXPECTED_INPUT_TYPE] Cannot resolve "explode(devices)" due to data type mismatch: The first parameter requires the ("ARRAY" or "MAP") type, however "devices" has the type "STRING". SQLSTATE: 42K09
 
-
-    ![image](https://github.com/user-attachments/assets/59c012ec-1598-45fe-8f33-e7597209d927)
-
-
-[DATATYPE_MISMATCH.INVALID_JSON_SCHEMA] Cannot resolve "from_json(devices)" due to data type mismatch: Input schema "STRING" must be a struct, an array, a map or a variant. SQLSTATE: 42K09
+[
+  {
+    "id": 5000175793,
+    "groupId": "5100ffff-60b615b0000",
+    "name": "01305",
+    "status": 16,
+    "isWaking": false,
+    "wakeable": false,
+    "lastCommunication": "2024-09-25T19:13:21.946906Z",
+    "devices": "[{\"id\": 5000183741, \"serialNumber\": \"QM40851679\", \"lastCommunication\": \"2024-09-25T19:13:21.9469304Z\", \"onlineStatus\": 16, \"views\": [{\"id\": 5000414052, \"name\": \"FORWARD\", \"label\": \"Outside\"}, {\"id\": 5000414053, \"name\": \"REAR\", \"label\": \"Inside\"}], \"capabilities\": [], \"roleId\": 1, \"supportedCommands\": [\"checkinv1\", \"clipdatav1\", \"datareqv1\", \"filerequestv1\", \"ftladdv1\", \"ftllistv1\", \"ftlremovev1\", \"getsyslogv1\", \"labv1\", \"locationv1\", \"moduleremovev1\", \"moduleupdatev1\", \"performupdatev1\", \"pingv1\", \"propertiesv1\", \"rawcamv1\", \"requestsettingsreportv1\", \"requestversionsv1\", \"restartcanv1\", \"settingsv1\", \"snapshotv2\", \"statev1\", \"streamdatav1\", \"streamresetv1\", \"streamvideov1\", \"timelinev1\", \"updateavailablev1\", \"videostatev1\"], \"hardwarePlatform\": \"SF400\"}]",
+    "dcVehicleId": "9100ffff-48a9-e8e15b0000"
+  }
+]
