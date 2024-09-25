@@ -34,3 +34,7 @@ def statuses_api_response(parent_key='', sep= '_'):
 
 
     [CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
+
+
+    ![image](https://github.com/user-attachments/assets/59c012ec-1598-45fe-8f33-e7597209d927)
+
