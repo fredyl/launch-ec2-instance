@@ -39,3 +39,5 @@ def statuses_api_response(parent_key='', sep= '_'):
 
     ![image](https://github.com/user-attachments/assets/59c012ec-1598-45fe-8f33-e7597209d927)
 
+
+[DATATYPE_MISMATCH.INVALID_JSON_SCHEMA] Cannot resolve "from_json(devices)" due to data type mismatch: Input schema "STRING" must be a struct, an array, a map or a variant. SQLSTATE: 42K09
