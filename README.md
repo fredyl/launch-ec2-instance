@@ -1,36 +1,19 @@
-when I use the functions statuses_api_response the data is populated as below. but then when trying to create a dataframe while using the function below process_api_data_to_delta i get _corrupt_record.
-Why the dataframes comes as corrupted record and how can I fix the issue. since will need to use the dataframe to create a delta table
-
-def statuses_api_response():
-    endpoint = "/vehicles/all"   
-    response_data = lytx_get_repoonse_from_event_api(endpoint)
-    return response_data
-    print(response_data)
-statuses_api_response()
-
-
-def process_api_data_to_delta(endpoint, table_name):
-    # Fetch the API response
-    response_data = lytx_get_repoonse_from_event_api(endpoint)
+def fetch_vehicle_details():
+    # Step 1: Fetch all vehicles and extract IDs
+    all_vehicles_endpoint = "/vehicles/all"
+    response_data = lytx_get_repoonse_from_event_api(all_vehicles_endpoint)
     
-    # Convert JSON response to DataFrame
-    if isinstance(response_data, list):
-        df = spark.createDataFrame(response_data)  # Handle if the response is a list
-    else:
-        rdd = spark.sparkContext.parallelize([response_data])
-        df = spark.read.json(rdd)
+    # Extract vehicle IDs from the response
+    if 'vehicles' not in response_data:
+        raise Exception("No 'vehicles' key found in the response data")
     
-    # Add insert_time and update_time columns
-    current_time = F.current_timestamp()
-    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
-    df.display()
-
+    vehicle_ids = [vehicle['id'] for vehicle in response_data['vehicles']]  # List of vehicle IDs
     
-from pyspark.sql.functions import explode
-
-# Explode the devices array into individual rows
-df_flattened = df.withColumn("device", explode("devices")) \
-                 .select("id", "name", "status", "device.serialNumber", "device.views")
-
-# Show the flattened DataFrame
-df_flattened.display()
+    # Step 2: Fetch details for each vehicle by ID
+    vehicle_details = []
+    for vehicle_id in vehicle_ids:
+        vehicle_endpoint = f"/vehicles/{vehicle_id}"
+        vehicle_data = lytx_get_repoonse_from_event_api(vehicle_endpoint)  # Fetch details by ID
+        vehicle_details.append(vehicle_data)  # Store the vehicle details
+    
+    return vehicle_details  # Return the list of all vehicle details
