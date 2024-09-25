@@ -33,26 +33,8 @@ def statuses_api_response(parent_key='', sep= '_'):
     if isinstance(struct_response_data, list):
         df = spark.createDataFrame(struct_response_data)
 
+[CANNOT_INFER_TYPE_FOR_FIELD] Unable to infer the type of the field `devices`.
+PySparkTypeError: [CANNOT_MERGE_TYPE] Can not merge type `StringType` and `ArrayType`.
 
-current_time = current_timestamp()
-    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
-
-    # Ensure `devices` is treated as a JSON string
-    df = df.withColumn("devices", col("devices").cast(StringType()))
-
-    # Attempt to parse the devices JSON column dynamically
-    try:
-        df = df.withColumn("devices_parsed", from_json(col("devices"), "array<struct<*>>"))
-    except Exception as e:
-        print(f"Error parsing devices: {e}")
-        # Fallback if parsing fails
-        df = df.withColumn("devices_parsed", col("devices"))
-
-    # Explode the `devices_parsed` array (if it contains multiple items)
-    df = df.withColumn("device", explode(col("devices_parsed")))
-
-    # Dynamically select columns (exploded fields + existing fields)
-    df = df.select("*", "device.*").drop("devices", "device", "devices_parsed")
-
-    # Display the DataFrame
-    df.display()
+During handling of the above exception, another exception occurred:
+PySparkTypeError                          Traceback (most recent call last)
