@@ -1,39 +1,46 @@
-![pic1](https://github.com/user-attachments/assets/4758ce09-9ef6-46f8-ac09-f6ffbac6e9c5)
-from pyspark.sql import Row
-def statuses_api_response(parent_key='', sep= '_'):
-    endpoint = "/video/vehicles"   
-
-    response_data = lytx_get_repoonse_from_event_api(endpoint)
-
-    if 'vehicles' not in response_data:
-        raise Exception(f"No vehicles key found in response data for endpoint: {endpoint}")
-    vehicle_ids= [vehicle['id'] for vehicle in response_data['vehicles']]
-
-    struct_response_data =[]
-    all_keys = set()
-    for vehicle_id in vehicle_ids:
-        endpoint = f"/video/vehicles/{vehicle_id}"
-        vehicle_data = lytx_get_repoonse_from_event_api(endpoint)
-        vehicle_json_data ={}
-        for key, value in vehicle_data.items():
-            if isinstance(value, dict) or isinstance(value, list):
-                vehicle_json_data[key] =json.dumps(value)
-            else:
-                vehicle_json_data[key] =value
-        all_keys.update(vehicle_json_data.keys())
-        # print(json.dumps(response_data,indent=2))
-
-    struct_response_data.append(vehicle_json_data)
-    for data in struct_response_data:
-        for key in all_keys:
-            if key not in data:
-                data[key] = None
-    
-    rows = [Row(**data) for data in struct_response_data]
-    if isinstance(struct_response_data, list):
-        df = spark.createDataFrame(struct_response_data)
- df = df.select(
-        "id", "groupId", "name", "status", "isWaking", "wakeable", "lastCommunication", "dcVehicleId", 
-        "device.id", "device.serialNumber", "device.lastCommunication", "device.onlineStatus", 
-        "device.views", "device.capabilities", "device.roleId", "device.supportedCommands", "device.hardwarePlatform"
-    )
+{'id': 5000193244,
+  'groupId': '5100ffff-60b6-e5cd-0cdb-60a3e15b0000',
+  'name': '01310',
+  'status': 16,
+  'isWaking': False,
+  'wakeable': False,
+  'lastWakeAttempt': '2024-08-16T17:46:26.913Z',
+  'lastCommunication': '2024-09-25T20:56:56.225485Z',
+  'devices': [{'id': 5000201348,
+    'serialNumber': 'QM40855162',
+    'lastCommunication': '2024-09-25T20:56:56.2255008Z',
+    'onlineStatus': 16,
+    'views': [{'id': 5000460269, 'name': 'FORWARD', 'label': 'Outside'},
+     {'id': 5000460270, 'name': 'REAR', 'label': 'Inside'}],
+    'capabilities': [],
+    'roleId': 1,
+    'supportedCommands': ['checkinv1',
+     'clipdatav1',
+     'datareqv1',
+     'filerequestv1',
+     'ftladdv1',
+     'ftllistv1',
+     'ftlremovev1',
+     'getsyslogv1',
+     'labv1',
+     'locationv1',
+     'moduleremovev1',
+     'moduleupdatev1',
+     'performupdatev1',
+     'pingv1',
+     'propertiesv1',
+     'rawcamv1',
+     'requestsettingsreportv1',
+     'requestversionsv1',
+     'restartcanv1',
+     'settingsv1',
+     'snapshotv2',
+     'statev1',
+     'streamdatav1',
+     'streamresetv1',
+     'streamvideov1',
+     'timelinev1',
+     'updateavailablev1',
+     'videostatev1'],
+    'hardwarePlatform': 'SF400'}],
+  'dcVehicleId': '9100ffff-48a9-e863-a1c2-60a3e15b0000'},
