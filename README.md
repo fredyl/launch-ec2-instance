@@ -1,90 +1,59 @@
-
-how can I use the below api endpoints to make a successful API get request with the below codes. Since I keep having an error 404
-
-"/videos/safety/events/behaviors",
-    "/videos/safety/events/triggersubtypes",
-    "/videos/safety/events/triggers",
-    "/videos/safety/eventsWithMetadata",
-    "/video/vehicles/",
-    "/vehicles/statuses",
-    "/vehicles/types",
-    "/vehicles"
-
-
-def lytx_get_repoonse_from_event_api(endpoint):
-    base_url = "https://lytx-api.prod5.ph.lytx.com"
-    url = base_url + endpoint
-    headers = {
-        'x-apikey': api_key
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        response_data = response.json()
-        return response_data
-    else:
-        raise Exception("Failed:", response.status_code, response.text)
-
-
-def process_api_data_to_delta(endpoint, table_name):
-    response_data = lytx_get_repoonse_from_event_api(endpoint)
-
-    if isinstance(response_data, list):
-        df = spark.createDataFrame(response_data) 
-    else:
-        rdd = spark.sparkContext.parallelize([response_data])
-        df = spark.read.json(rdd)
-    current_time = F.current_timestamp()
-    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
-
-    if "id" in df.columns:
-        primary_key = "id"
-    else:
-        raise Exception(f"No id column found in data schema for enppoint: {endpoint}")
-
-    if spark.catalog.tableExists(table_name):
-        print(f"Table {table_name} exists. Performing upsert (merge)...")
-        delta_table = DeltaTable.forName(spark, table_name) 
-        delta_table.alias("existing_data") \
-          .merge(df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
-          .whenMatchedUpdate(set={
-              "update_time": current_time, 
-              **{col: F.col(f"new_data.{col}") for col in df.columns if col != primary_key}
-          }) \
-          .whenNotMatchedInsert(values={
-              **{col: F.col(f"new_data.{col}") for col in df.columns}
-          }) \
-          .execute()
-
-        print(f"Upsert (merge) completed successfully for {table_name}.")
-    else:
-        print(f"Table {table_name} does not exist. Creating new table...")
-        df.write.format("delta").mode("overwrite").saveAsTable(table_name)
-        print(f"Table {table_name} created successfully with new data.")
-
-
-
-endpoints =[
-    "/safety/events/statuses",
-    "/safety/events/behaviors",
-    "/safety/events/triggersubtypes",
-    "/safety/events/triggers"
-]
-
-for endpoint in endpoints:
-    try:
-        table_name = f"bronze.lytx_{endpoint.split('/')[-1]}_table"
-        print(f"Creating table {table_name}...")
-        process_api_data_to_delta(endpoint, table_name)
-    except Exception as e:
-        print(f"Error with {endpoint}: {e}")
-
-
+when I use the functions statuses_api_response the data is populated as below. but then when trying to create a dataframe while using the function below process_api_data_to_delta i get _corrupt_record.
+Why the dataframes comes as corrupted record and how can I fix the issue. since will need to use the dataframe to create a delta table
 
 def statuses_api_response():
-    endpoint = "/videos/safety/events/triggers"   
+    endpoint = "/vehicles/all"   
     response_data = lytx_get_repoonse_from_event_api(endpoint)
     return response_data
     print(response_data)
 statuses_api_response()
 
-Exception: ('Failed:', 404, '{"message":"no Route matched with those values"}')
+
+def process_api_data_to_delta(endpoint, table_name):
+    # Fetch the API response
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+    
+    # Convert JSON response to DataFrame
+    if isinstance(response_data, list):
+        df = spark.createDataFrame(response_data)  # Handle if the response is a list
+    else:
+        rdd = spark.sparkContext.parallelize([response_data])
+        df = spark.read.json(rdd)
+    
+    # Add insert_time and update_time columns
+    current_time = F.current_timestamp()
+    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+    df.display()
+
+    
+
+'vehicles': [{'id': '9100fffa3e15b0000',
+   'name': '107763',
+   'type': 23,
+   'status': 2,
+   'licensePlateNumber': '3167',
+   'countrySubdivision': 'US-IL',
+   'lastConnected': '2022-03-25T17:58:33.2549447Z',
+   'driverId': '000000000000',
+   'groupId': '5100f5b0000',
+   'vin': '1FTMF1CW9AKC35573',
+   'seatbeltType': 1,
+   'make': 'FORD',
+   'model': 'F-150',
+   'year': 2010,
+   'deviceId': '3500f0a3e15b0000'},
+  {'id': '9100ffff-48e15b0000',
+   'name': '204633',
+   'type': 23,
+   'status': 1,
+   'licensePlateNumber': None,
+   'countrySubdivision': None,
+   'lastConnected': '2022-03-30T21:43:48.222166Z',
+   'driverId': '000451d_et5300000',
+   'groupId': '5100f3e15b0000',
+   'vin': '1GCHC24U76E198459',
+   'seatbeltType': 1,
+   'make': 'CHEVROLET',
+   'model': 'Silverado',
+   'year': 2006,
+   'deviceId': '00000000-0000-0000-0000-000000000000'},
