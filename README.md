@@ -27,7 +27,7 @@ def process_api_data_to_delta(endpoint, table_name):
 
     
 
-'vehicles': [{'id': '9100fffa3e15b0000',
+{'vehicles': [{'id': '9100fffa3e15b0000',
    'name': '107763',
    'type': 23,
    'status': 2,
@@ -56,4 +56,5 @@ def process_api_data_to_delta(endpoint, table_name):
    'make': 'CHEVROLET',
    'model': 'Silverado',
    'year': 2006,
-   'deviceId': '00000000-0000-0000-0000-000000000000'},
+   'deviceId': '00000000-0000-0000-0000-000000000000'}],
+   'totalResults':1258
