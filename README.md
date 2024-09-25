@@ -26,51 +26,11 @@ def process_api_data_to_delta(endpoint, table_name):
     df.display()
 
     
-{'totalCount': 6872,
- 'vehicles': [{'id': 5000175793,
-   'groupId': '5100ffff-60b6-e5cd-0cdb-60a3e15b0000',
-   'name': '01305',
-   'status': 16,
-   'isWaking': False,
-   'wakeable': False,
-   'lastCommunication': '2024-09-25T15:00:13.7917521Z',
-   'devices': [{'id': 5000183741,
-     'serialNumber': 'QM40851679',
-     'lastCommunication': '2024-09-25T15:00:13.7917678Z',
-     'onlineStatus': 16,
-     'views': [{'id': 5000414052, 'name': 'FORWARD', 'label': 'Outside'},
-      {'id': 5000414053, 'name': 'REAR', 'label': 'Inside'}],
-     'capabilities': [],
-     'roleId': 1,
-     'supportedCommands': ['checkinv1',
-      'clipdatav1',
-      'datareqv1',
-      'filerequestv1',
-      'ftladdv1',
-      'ftllistv1',
-      'ftlremovev1',
-      'getsyslogv1',
-      'labv1',
-      'locationv1',
-      'moduleremovev1',
-      'moduleupdatev1',
-      'performupdatev1',
-      'pingv1',
-      'propertiesv1',
-      'rawcamv1',
-      'requestsettingsreportv1',
-      'requestversionsv1',
-      'restartcanv1',
-      'settingsv1',
-      'snapshotv2',
-      'statev1',
-      'streamdatav1',
-      'streamresetv1',
-      'streamvideov1',
-      'timelinev1',
-      'updateavailablev1',
-      'videostatev1'],
-     'hardwarePlatform': 'SF400'}],
-   'dcVehicleId': '9100ffff-48a9-e863-445b-60a3e15b0000'}]}
-   'deviceId': '00000000-0000-0000-0000-000000000000'}],
-   'totalResults':1258
+from pyspark.sql.functions import explode
+
+# Explode the devices array into individual rows
+df_flattened = df.withColumn("device", explode("devices")) \
+                 .select("id", "name", "status", "device.serialNumber", "device.views")
+
+# Show the flattened DataFrame
+df_flattened.display()
