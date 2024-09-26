@@ -1,6 +1,2 @@
-how do I modify this to include events and status in the table name
-"/video/safety/events/statuses"
 
-table_name = f"bronze.lytx_{endpoint.split('/')[-1]}_table"
-        print(f"Creating table {table_name}...")
-        process_api_data_to_delta(endpoint, table_name)
+](https://lytx-api.prod5.ph.lytx.com/video/events?EndDate=2024-09-23&StartDate=2024-09-01)
