@@ -1,56 +1,191 @@
-import requests
-import datetime
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp
-from delta.tables import DeltaTable
 
-# Initialize Spark session
-spark = SparkSession.builder.appName("lytx_data_ingestion").getOrCreate()
 
-# Define the endpoint URL with dynamic dates (using ISO format)
-today = datetime.date.today().isoformat()  # Get today in ISO format (YYYY-MM-DD)
-two_years_ago = (datetime.date.today() - datetime.timedelta(days=2*365)).isoformat()  # Two years ago in ISO format
 
-# Construct the API URL with ISO formatted dates
-api_url = f"https://lytx-api.prod5.ph.lytx.com/video/events?EndDate={today}&StartDate={two_years_ago}"
 
-# Fetch data from the Lytx API
-try:
-    response = requests.get(api_url)
-    response.raise_for_status()  # Raises an error if the request fails
-    data = response.json()  # Assuming the API returns JSON data
-except requests.exceptions.HTTPError as err:
-    print(f"HTTP error occurred: {err}")
-    data = None
-except Exception as err:
-    print(f"An error occurred: {err}")
-    data = None
-
-# Check if data is available before proceeding
-if data:
-    # Convert JSON data to a Spark DataFrame
-    df = spark.read.json(spark.sparkContext.parallelize([data]))
-
-    # Add a timestamp for when the data was last modified
-    df = df.withColumn("LastModified", current_timestamp())
-
-    # Define Delta table path and name
-    table_name = "bronze.lytx_video_events"
-
-    # Check if the Delta table exists
-    if DeltaTable.isDeltaTable(spark, table_name):
-        delta_table = DeltaTable.forName(spark, table_name)
-
-        # Perform upsert (merge) operation
-        delta_table.alias("tgt").merge(
-            df.alias("src"),
-            "tgt.id = src.id"  # Assuming 'id' is the unique identifier for records
-        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
-
-        print(f"Data successfully upserted into {table_name}.")
+def lytx_get_repoonse_from_event_api(endpoint):
+    if "videos" in endpoint:
+        base_url = "https://lytx-api.prod5.ph.lytx.com"
     else:
-        # If the table does not exist, create it by writing the DataFrame to Delta
-        df.write.format("delta").saveAsTable(table_name)
-        print(f"New Delta table {table_name} created and data inserted.")
+        base_url = "https://lytx-api.prod5.ph.lytx.com"
+    url = base_url + endpoint
+    headers = {'x-apikey': api_key }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data
+    else:
+        raise Exception("Failed:", response.status_code, response.text)
+
+
+
+def process_api_data_to_delta(endpoint, table_name):
+    response_data = lytx_get_repoonse_from_event_api(endpoint)
+
+    if isinstance(response_data, list):
+        df = spark.createDataFrame(response_data) 
+    else:
+        rdd = spark.sparkContext.parallelize([response_data])
+        df = spark.read.json(rdd)
+    current_time = F.current_timestamp()
+    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+
+    if "id" in df.columns:
+        primary_key = "id"
+    else:
+        raise Exception(f"No id column found in data schema for enppoint: {endpoint}")
+
+    if spark.catalog.tableExists(table_name):
+        print(f"Table {table_name} exists. Performing upsert (merge)...")
+        delta_table = DeltaTable.forName(spark, table_name) 
+        delta_table.alias("existing_data") \
+          .merge(df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
+          .whenMatchedUpdate(set={
+              "update_time": current_time, 
+              **{col: F.col(f"new_data.{col}") for col in df.columns if col != primary_key}
+          }) \
+          .whenNotMatchedInsert(values={
+              **{col: F.col(f"new_data.{col}") for col in df.columns}
+          }) \
+          .execute()
+
+        print(f"Upsert (merge) completed successfully for {table_name}.")
+    else:
+        print(f"Table {table_name} does not exist. Creating new table...")
+        df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+        print(f"Table {table_name} created successfully with new data.")
+
+
+endpoints =[
+    "/video/safety/events/statuses" ,
+    "/video/safety/events/behaviors",
+    "/video/safety/events/triggersubtypes",
+    "/video/safety/events/triggers",
+    "/video/safety/eventsWithMetadata",
+    "/vehicles/statuses",
+    "/vehicles/types",
+]
+
+for endpoint in endpoints:
+    try:
+        table_name = f"bronze.lytx_{endpoint.split('/')[1]}_{endpoint.split('/')[-1]}_table"
+        print(f"Creating table {table_name}...")
+        process_api_data_to_delta(endpoint, table_name)
+    except Exception as e:
+        print(f"Error with {endpoint}: {e}")
+
+endpoint = "/vehicles/all"   
+response_data = lytx_get_repoonse_from_event_api(endpoint)
+if 'vehicles' not in response_data:
+    raise Exception(f"No vehicles key found in response data for endpoint: {endpoint}")
+vehicle_ids= [vehicle['id'] for vehicle in response_data['vehicles']]
+response_data =[]
+for vehicle_id in vehicle_ids:
+    endpoint = f"/vehicles/{vehicle_id}"
+    vehicle_data = lytx_get_repoonse_from_event_api(endpoint)
+    response_data.append(vehicle_data)    
+df = spark.createDataFrame(response_data)
+current_time = F.current_timestamp()
+df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+if "id" in df.columns:
+    primary_key = "id"
 else:
-    print("No data fetched to upsert.")
+    raise Exception(f"No id column found in data schema for enppoint: {endpoint}")
+table_name = f"bronze.lytx_vehicles_vehicleId_table"
+if spark.catalog.tableExists(table_name):
+    print(f"Table {table_name} exists. Performing upsert (merge)...")
+    delta_table = DeltaTable.forName(spark, table_name)  # Reference the Delta table in the database
+    delta_table.alias("existing_data") \
+        .merge(df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
+        .whenMatchedUpdate(set={
+            "update_time": current_time, 
+            **{col: F.col(f"new_data.{col}") for col in df.columns if col != primary_key}
+        }) \
+        .whenNotMatchedInsert(values={
+            **{col: F.col(f"new_data.{col}") for col in df.columns}
+        }) \
+        .execute()
+    print(f"Upsert (merge) completed successfully for {table_name}.")
+else:
+    print(f"Table {table_name} does not exist. Creating new table...")
+    df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+    print(f"Table {table_name} created successfully with new data.")
+
+
+
+endpoint = "/video/vehicles"   
+response_data = lytx_get_repoonse_from_event_api(endpoint)
+
+if 'vehicles' not in response_data:
+    raise Exception(f"No vehicles key found in response data for endpoint: {endpoint}")
+vehicle_ids= [vehicle['id'] for vehicle in response_data['vehicles']]
+
+response_data =[]
+for vehicle_id in vehicle_ids:
+    endpoint = f"/video/vehicles/{vehicle_id}"
+    vehicle_data = lytx_get_repoonse_from_event_api(endpoint)
+    response_data.append(vehicle_data)
+data_dict = json.dumps(response_data)
+rdd = spark.sparkContext.parallelize([data_dict])
+spark_df = spark.read.json(rdd) 
+current_time = F.current_timestamp()
+df = spark_df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+if "id" in df.columns:
+    primary_key = "id"
+else:
+    raise Exception(f"No id column found in data schema for enppoint: {endpoint}")
+table_name = f"bronze.lytx_video_vehicles_vehicleId_table"
+if spark.catalog.tableExists(table_name):
+    print(f"Table {table_name} exists. Performing upsert (merge)...")
+    delta_table = DeltaTable.forName(spark, table_name)  # Reference the Delta table in the database
+    delta_table.alias("existing_data") \
+        .merge(df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
+        .whenMatchedUpdate(set={
+            "update_time": current_time, 
+            **{col: F.col(f"new_data.{col}") for col in df.columns if col != primary_key}
+        }) \
+        .whenNotMatchedInsert(values={
+            **{col: F.col(f"new_data.{col}") for col in df.columns}
+        }) \
+        .execute()
+    print(f"Upsert (merge) completed successfully for {table_name}.")
+else:
+    print(f"Table {table_name} does not exist. Creating new table...")
+    df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+    print(f"Table {table_name} created successfully with new data.")
+
+
+
+today = datetime.date.today()
+two_years_ago = today - datetime.timedelta(days=2*365)
+
+today_str = today.strftime("%Y-%m-%d")
+two_years_ago_str = two_years_ago.strftime("%Y-%m-%d")
+endpoint = f"/video/events?EndDate={today_str}&StartDate={two_years_ago_str}"
+response_data = lytx_get_repoonse_from_event_api(endpoint)
+events_data = response_data['events']
+df = spark.createDataFrame(events_data)  
+current_time = F.current_timestamp()
+spark_df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
+if "id" in df.columns:
+    primary_key = "id"
+else:
+    raise Exception(f"No id column found in data schema for enppoint: {endpoint}")
+table_name = f"bronze.lytx_video_events_table"
+if spark.catalog.tableExists(table_name):
+    print(f"Table {table_name} exists. Performing upsert (merge)...")
+    delta_table = DeltaTable.forName(spark, table_name)  # Reference the Delta table in the database
+    delta_table.alias("existing_data") \
+        .merge(spark_df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
+        .whenMatchedUpdate(set={
+            "update_time": current_time, 
+            **{col: F.col(f"new_data.{col}") for col in spark_df.columns if col != primary_key}
+        }) \
+        .whenNotMatchedInsert(values={
+            **{col: F.col(f"new_data.{col}") for col in spark_df.columns}
+        }) \
+        .execute()
+    print(f"Upsert (merge) completed successfully for {table_name}.")
+else:
+    print(f"Table {table_name} does not exist. Creating new table...")
+    df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+    print(f"Table {table_name} created successfully with new data.")
