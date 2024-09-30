@@ -1,1 +1,1 @@
-complex_columns = [field.name for field in df.schema.fields if isinstance(field.dataType, (ArrayType, MapType))]
+[complex_columns = [field.name for field in df.schema.fields if isinstance(field.dataType, (ArrayType, MapType))]](https://lytx-api.prod5.ph.lytx.com/video/safety/eventsWithMetadata?dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit=1000)
