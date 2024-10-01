@@ -1,4 +1,4 @@
-[CANNOT_INFER_TYPE_FOR_FIELD] Unable to infer the type of the field `devices`.
+[[CANNOT_INFER_TYPE_FOR_FIELD] Unable to infer the type of the field `devices`.](https://lytx-api.prod5.ph.lytx.com/video/safety/eventsWithMetadata?from=2022-10-31T15%3A04%3A30.000Z&to=2024-10-01T15%3A04%3A30.777Z&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit=1000)
 
 
 limit = 100
