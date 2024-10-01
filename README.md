@@ -38,6 +38,72 @@ if spark.catalog.tableExists(table_name):
         }) \
         .execute()
     print(f"Upsert (merge) completed successfully for {table_name}.")
+
+
+
+    getting data for page:1
+[
+  {
+    "id": 5000175793,
+    "groupId": "5100ffff-60b6-e5cd-0cdb-60a3e15b0000",
+    "name": "01305",
+    "status": 16,
+    "isWaking": false,
+    "wakeable": false,
+    "lastCommunication": "2024-10-01T16:56:05.6005533Z",
+    "devices": [
+      {
+        "id": 5000183741,
+        "serialNumber": "QM40851679",
+        "lastCommunication": "2024-10-01T16:56:05.6005749Z",
+        "onlineStatus": 16,
+        "views": [
+          {
+            "id": 5000414052,
+            "name": "FORWARD",
+            "label": "Outside"
+          },
+          {
+            "id": 5000414053,
+            "name": "REAR",
+            "label": "Inside"
+          }
+        ],
+        "capabilities": [],
+        "roleId": 1,
+        "supportedCommands": [
+          "checkinv1",
+          "clipdatav1",
+          "datareqv1",
+          "filerequestv1",
+          "ftladdv1",
+          "ftllistv1",
+          "ftlremovev1",
+          "getsyslogv1",
+          "labv1",
+          "locationv1",
+          "moduleremovev1",
+          "moduleupdatev1",
+          "performupdatev1",
+          "pingv1",
+          "propertiesv1",
+          "rawcamv1",
+          "requestsettingsreportv1",
+          "requestversionsv1",
+          "restartcanv1",
+          "settingsv1",
+          "snapshotv2",
+          "statev1",
+          "streamdatav1",
+          "streamresetv1",
+          "streamvideov1",
+          "timelinev1",
+          "updateavailablev1",
+          "videostatev1"
+        ],
+        "hardwarePlatform": "SF400"
+      }
+    ],
 else:
     print(f"Table {table_name} does not exist. Creating new table...")
     df.write.format("delta").mode("overwrite").saveAsTable(table_name)
