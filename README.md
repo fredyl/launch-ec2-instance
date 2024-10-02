@@ -1,20 +1,19 @@
-def fetch_events_meta_data():
-    limit = 500
-    all_events_metadata = []
-    page = 1
+joined_df = existing_data.alias("existing_data").join(
+        spark_df.alias("new_data"), 
+        F.expr(f"existing_data.{primary_key} = new_data.{primary_key}"),
+        how="inner"
+    )
 
+    # Check for column mismatches
+    mismatch_conditions = [
+        F.col(f"existing_data.{col}") != F.col(f"new_data.{col}")
+        for col in spark_df.columns if col != primary_key
+    ]
+    
+    mismatches = joined_df.filter(F.coalesce(*mismatch_conditions)).select("existing_data.*", "new_data.*")
 
-    while True:
-        endpoint =f"/video/safety/eventsWithMetadata?from=2022-03-16T16:19:58.80Z&to=2024-03-16T16:19:58.80Z&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
-        response_data = lytx_get_repoonse_from_event_api(endpoint)
-        # print(response_data)
-        print(f"getting data for page:{page}")
-        all_events_metadata.extend(response_data)
-        if len(response_data) < limit:
-        # if not response_data:
-            break
-        page += 1
-
-    return all_events_metadata
-
-meta_data = fetch_events_meta_data()
+    if mismatches.count() == 0:
+        print("No column mismatches found between existing and new data.")
+    else:
+        print(f"Found mismatches between existing and new data in the following rows:")
+        mismatches.show(truncate=False)
