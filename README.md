@@ -1,19 +1,32 @@
-joined_df = existing_data.alias("existing_data").join(
-        spark_df.alias("new_data"), 
-        F.expr(f"existing_data.{primary_key} = new_data.{primary_key}"),
-        how="inner"
-    )
+lets say below is the result from response_data from an APi call how do i select a code and count the number id's amd make sure the follow the paging method above
+"id": "4300ffff-6680-6341-2570-60a3e15b0000",
+    "customerEventId": "DDPC56081",
+    "eventTriggerId": 26,
+    "eventTriggerSubTypeId": 1026,
+    "eventStatusId": 1,
+    "recordDateUTC": "2024-10-02T15:33:49Z",
+    "recordDateTZ": "CST ",
+    "recordDateUTCOffset": -300,
+    "downloadedDate": "2024-10-02T15:34:27Z",
+    "score": 0,
+    "reviewedDate": null,
+    "erSerialNumber": "QM40905404",
+    "overDue": 0.0,
 
-    # Check for column mismatches
-    mismatch_conditions = [
-        F.col(f"existing_data.{col}") != F.col(f"new_data.{col}")
-        for col in spark_df.columns if col != primary_key
-    ]
-    
-    mismatches = joined_df.filter(F.coalesce(*mismatch_conditions)).select("existing_data.*", "new_data.*")
 
-    if mismatches.count() == 0:
-        print("No column mismatches found between existing and new data.")
-    else:
-        print(f"Found mismatches between existing and new data in the following rows:")
-        mismatches.show(truncate=False)
+def fetch_events_meta_data():
+    limit = 1000
+    all_events_metadata = []
+    page = 1
+    while True:
+        endpoint = f"/video/safety/eventsWithMetadata?dateOption=recordDate&sortDirection=desc&sortBy=recordDate&includeSubgroups=true&limit={limit}&page={page}"
+        response_data = lytx_get_repoonse_from_event_api(endpoint)
+        print(json.dumps(response_data,indent=2))
+        print(f"getting data for page:{page}")
+        all_events_metadata.extend(response_data)
+        if len(response_data) < limit:
+        # if not response_data:
+            break
+        page += 1
+
+    return all_events_metadata
