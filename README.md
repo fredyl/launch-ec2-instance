@@ -1,1 +1,1 @@
-https://customer-experience-api.arifleet.com/v1/fuels?transDateCode=3
+{'pageNumber': '1', 'totalPages': '2', 'us': [{'usRecordID': '794911237', 'lesseeCode': '0D11', 'ariVehicleNumber': '124306', 'clientVehicleNumber': '124306', 'transactionDate': '10/5/2024 5:07:00 PM', 'wexAccountNumber': '', 'vendorName': 'SHELL OI', 'siteName': 'SHELL OIL 12', 'siteAddress': '70 ROSSANLEY DR', 'siteCity': 'MEDFORD', 'siteState': 'OR', 'siteZip': '97501', 'driverFuelPin': '998322', 'firstName': 'WAYNE', 'lastName': 'REASONS', 'odometer': '10', 'product': 'UNLEADED', 'unitCost': '3.919', 
