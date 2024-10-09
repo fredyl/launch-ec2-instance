@@ -1,30 +1,27 @@
-def paginate_lytx_api(endpoint, limit, page):
+limit=100
+page=1
+all_vechicles=[]
+table_name = f"bronze.lytx_video_vehicles_vehicleId"
+endpoint = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
 
-    all_vechicles=[]
-    while True:
-        response,response_data = lytx_get_repoonse_from_event_api(endpoint) #Getting API response and response_data
-        print(f"getting data for page:{page}") # print page being processed
-        if response_data is None:
-            print("No more data to get for endpoint: {endpoint}")
-            break
+all_vechicles = get_lytx_paging_data(endpoint,limit,page)
+print(len(all_vechicles))
 
-        #Process response if status code 200 and data exists
-        if response.status_code == 200 and response_data:
-            print(f"Processing page{page}, with {len(response_data)} records")
-            all_vechicles.extend(response_data)
 
-            # if 'vehicles' in response_data:
-            #     vehicles = response_data['vehicles']
-            #     all_vechicles.extend(vehicles)
-            # else:
-            #     raise Exception(f"No vehicle found for endpoint: {endpoint}")       
-            # if not vehicles:
-            #     break
-        else:
-            #If status code is not 200, print status code and break
-            print(f"Received status code {response.status_code} for endpoint: {endpoint}")
-            break
-        page += 1
-    print("Pagination completed")
-    return all_vechicles
 
+def lytx_get_repoonse_from_event_api(endpoint):
+    if "videos" in endpoint:
+        base_url = "https://lytx-api.prod5.ph.lytx.com"
+    else:
+        base_url = "https://lytx-api.prod5.ph.lytx.com"
+    url = base_url + endpoint
+    headers = {'x-apikey': api_key }
+    response = requests.get(url, headers=headers)
+    if response.status_code == 204:
+        print(f" Recieved 204, No Content from the API.")
+        return response, None
+    if response.status_code == 200:
+        response_data = response.json()
+        return response, response_data
+    else:
+        raise Exception("Failed:", response.status_code, response.text)
