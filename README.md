@@ -18,3 +18,25 @@ def get_lytx_paging_data(endpoint, limit, page):
         page +=1
     print("Pagination completed")
     return all_vechicles
+
+
+limit=100
+page=1
+all_vechicles=[]
+table_name = f"bronze.lytx_video_vehicles_vehicleId"
+endpoint = f"/vehicles/all?pages={page}&includeSubgroups=true"
+
+all_vechicles = get_lytx_paging_data(endpoint,page)
+print(len(all_vechicles))
+
+
+Exception: ('Failed:', 400, '{"errors":{"includeSubgroups":["The value is not valid for IncludeSubgroups."]},"type":null,"title":"One or more validation errors occurred.","status":400,"detail":null,"instance":null,"extensions":{}}')
+File <command-310280906947074>, line 7
+      4 table_name = f"bronze.lytx_video_vehicles_vehicleId"
+      5 endpoint = f"/vehicles/all?pages={page}&includeSubgroups=true"
+----> 7 all_vechicles = get_lytx_paging_data(endpoint,page)
+      8 print(len(all_vechicles))
+File <command-1002329549987713>, line 16, in lytx_get_repoonse_from_event_api(endpoint)
+     14     return response, response_data
+     15 else:
+---> 16     raise Exception("Failed:", response.status_code, response.text)
