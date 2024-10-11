@@ -1,38 +1,38 @@
-def get_vehicle_data(endpoint_template, limit, include_subgroups=False):
-    page = 1
+def get_lytx_paging_data(endpoint, page):
     all_vehicles = []
-
+    limit = 100
+    page = 1
     while True:
-        # Modify endpoint based on whether to include subgroups or not
-        if include_subgroups:
-            endpoint = f"{endpoint_template}?limit={limit}&page={page}&includeSubgroups=true"
+        if endpoint =="/vehicles/all":
+            page_endpoint = f"{endpoint}?pages={page}"
         else:
-            endpoint = f"{endpoint_template}?PageNumber={page}&PageSize={limit}"
-        
-        # Make the API call
-        response, response_data = lytx_get_repoonse_from_event_api(endpoint)
-        print(f"Getting data for page: {page}")
-
-        # Handle the case where the response is empty or status code is 204 (No Content)
+            page_endpoint = f"{endpoint}?PageNumber={page}&PageSize={limit}"
+               
+        response,response_data = lytx_get_repoonse_from_event_api(page_endpoint)
         status_code = response.status_code
-        if response_data is None or status_code == 204:
-            print(f"No content on page {page}, stopping pagination.")
+        if response_data is None or status_code ==204:
+            print(f" No Content on page {page}, Stopping Pagination")
             break
-
-        # Check if 'vehicles' key is in response data
-        if 'vehicles' in response_data:
+        if status_code == 200 and 'vehicles' in response_data:
             vehicles = response_data['vehicles']
-            all_vehicles.extend(vehicles)
-
-            # Stop if the number of vehicles is less than the limit or data is empty
-            if len(vehicles) < limit:
+            print(f"Processing page{page}, with {len(vehicles)} records")
+            if not vehicles:
                 break
+            all_vechicles.extend(vehicles) 
         else:
-            # Raise exception if 'vehicles' key is not found
-            raise Exception(f"No 'vehicles' key found in response data for endpoint: {endpoint}")
+            break
+        page +=1 #move to next page
+    print("Pagination completed")
+    return all_vechicles
 
-        # Increment page number for next iteration
-        page += 1
 
-    print(f"Total vehicles retrieved: {len(all_vehicles)}")
-    return all_vehicles
+    limit = 50
+all_vehicles=[]
+page =1
+table_name = f"bronze.lytx_video_vehicles_vehicleId"
+endpoint = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
+
+all_vehicles = get_lytx_paging_data(endpoint, page)
+
+
+Exception: ('Failed:', 400, '{"errors":{"pageSize":["The value is not valid for PageSize."]},"title":"One or more validation errors occurred.","status":400,"extensions":{}}'
