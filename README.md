@@ -1,40 +1,38 @@
-while True:
-    endpoint = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
-    response,response_data = lytx_get_repoonse_from_event_api(endpoint)
-    print(f"getting data for page:{page}")
+def get_vehicle_data(endpoint_template, limit, include_subgroups=False):
+    page = 1
+    all_vehicles = []
 
-    #check if vehicle key word is in response data
-    if 'vehicles' in response_data:
-        vehicles = response_data['vehicles']
-        all_vechicles.extend(vehicles)
+    while True:
+        # Modify endpoint based on whether to include subgroups or not
+        if include_subgroups:
+            endpoint = f"{endpoint_template}?limit={limit}&page={page}&includeSubgroups=true"
+        else:
+            endpoint = f"{endpoint_template}?PageNumber={page}&PageSize={limit}"
+        
+        # Make the API call
+        response, response_data = lytx_get_repoonse_from_event_api(endpoint)
+        print(f"Getting data for page: {page}")
 
-        #check if the length of the vehicles list is less than the limit
-        if len(vehicles) < limit:
+        # Handle the case where the response is empty or status code is 204 (No Content)
+        status_code = response.status_code
+        if response_data is None or status_code == 204:
+            print(f"No content on page {page}, stopping pagination.")
             break
-    else:#Raise exception if no vehicles key is found
-        raise Exception(f"No vehicles key found in response data for endpoint: {endpoint}") 
-    page += 1 #increment the page number by 1
-return all_vechicles
-print(len(all_vechicles))
 
+        # Check if 'vehicles' key is in response data
+        if 'vehicles' in response_data:
+            vehicles = response_data['vehicles']
+            all_vehicles.extend(vehicles)
 
-while True:
-    endpoint = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
-    response,response_data = lytx_get_repoonse_from_event_api(endpoint)
-    print(f"getting data for page:{page}")
+            # Stop if the number of vehicles is less than the limit or data is empty
+            if len(vehicles) < limit:
+                break
+        else:
+            # Raise exception if 'vehicles' key is not found
+            raise Exception(f"No 'vehicles' key found in response data for endpoint: {endpoint}")
 
-    status_code = response.status_code
-    if response_data is None or status_code ==204:
-            print(f" No Content on page {page}, Stopping Pagination")
-            break
-    #check if vehicle key word is in response data
-    if 'vehicles' in response_data:
-        vehicles = response_data['vehicles']
-        all_vechicles.extend(vehicles)
+        # Increment page number for next iteration
+        page += 1
 
-        # #check if the length of the vehicles list is less than the limit
-        # if response_data is None:
-        #     break
-    else:#Raise exception if no vehicles key is found
-        raise Exception(f"No vehicles key found in response data for endpoint: {endpoint}") 
-    page += 1 #increment the page number by 1
+    print(f"Total vehicles retrieved: {len(all_vehicles)}")
+    return all_vehicles
