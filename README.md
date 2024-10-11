@@ -36,3 +36,6 @@ all_vehicles = get_lytx_paging_data(endpoint, page)
 
 
 Exception: ('Failed:', 400, '{"errors":{"pageSize":["The value is not valid for PageSize."]},"title":"One or more validation errors occurred.","status":400,"extensions":{}}'
+
+
+/video/vehicles?PageNumber=1&PageSize=50?PageNumber=1&PageSize=50
