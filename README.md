@@ -1,8 +1,12 @@
+limit = 50
 all_vehicles=[]
-limit = 100
-page =1 
+page =1
 table_name = f"bronze.lytx_video_vehicles_vehicleId"
-endpoint = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
+endpoint = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
 
-all_vechicles = get_lytx_paging_data(endpoint,page)
+all_vehicles = get_lytx_paging_data(endpoint, page, limit)
+
 print(len(all_vehicles))
+
+
+UnboundLocalError: cannot access local variable 'page_endpoint' where it is not associated with a value
