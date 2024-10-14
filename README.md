@@ -1,1 +1,8 @@
-Exception: ('Failed:', 400, '{"errors":{"page":["The value is not valid for Page."],"limit":["The value is not valid for Limit."]},"type":null,"title":"One or more validation errors occurred.","status":400,"detail":null,"instance":null,"extensions":{}}')
+all_vehicles=[]
+limit = 100
+page =1 
+table_name = f"bronze.lytx_video_vehicles_vehicleId"
+endpoint = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
+
+all_vechicles = get_lytx_paging_data(endpoint,page)
+print(len(all_vehicles))
