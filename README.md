@@ -1,13 +1,16 @@
 def get_lytx_paging_data(endpoint, page):
     all_vehicles = []
-    limit = 100
+    limit = 50
     page = 1
     while True:
-        if endpoint =="/vehicles/all":
-            page_endpoint = f"{endpoint}?pages={page}"
+        if endpoint == "/vehicles/all?limit={limit}&page={page}&includeSubgroups=true":
+            page_endpoint = f"{endpoint}"
+            print(page_endpoint)
         else:
-            page_endpoint = f"{endpoint}?PageNumber={page}&PageSize={limit}"
-               
+            endpoint == f"/video/vehicles?PageNumber={page}&PageSize={limit}"
+            page_endpoint = f"{endpoint}"
+            print(page_endpoint)
+
         response,response_data = lytx_get_repoonse_from_event_api(page_endpoint)
         status_code = response.status_code
         if response_data is None or status_code ==204:
@@ -24,18 +27,3 @@ def get_lytx_paging_data(endpoint, page):
         page +=1 #move to next page
     print("Pagination completed")
     return all_vechicles
-
-
-    limit = 50
-all_vehicles=[]
-page =1
-table_name = f"bronze.lytx_video_vehicles_vehicleId"
-endpoint = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
-
-all_vehicles = get_lytx_paging_data(endpoint, page)
-
-
-Exception: ('Failed:', 400, '{"errors":{"pageSize":["The value is not valid for PageSize."]},"title":"One or more validation errors occurred.","status":400,"extensions":{}}'
-
-
-/video/vehicles?PageNumber=1&PageSize=50?PageNumber=1&PageSize=50
