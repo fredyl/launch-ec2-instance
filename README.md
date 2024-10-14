@@ -1,73 +1,38 @@
-[CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
-File <command-310280906947065>, line 46
-     43 print("Pagination completed")
-     45 #convert the data to dataframe, add timestamps columns and perform an upsert operation to the table using the upsert_data function
----> 46 df = spark.createDataFrame(all_events_metadata) 
-     47 current_time = F.current_timestamp()
-     48 df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
-File /databricks/spark/python/pyspark/sql/session.py:1076, in SparkSession._inferSchemaFromList(self, data, names)
-   1061 schema = reduce(
-   1062     _merge_type,
-   1063     (
-   (...)
-   1073     ),
-   1074 )
-   1075 if _has_nulltype(schema):
--> 1076     raise PySparkValueError(
-   1077         error_class="CANNOT_DETERMINE_TYPE",
-   1078         message_parameters={},
-   1079     )
-   1080 return schema
-
-
-
-
-#the below codes handes the video events metadata with pagination and upsert
-
-end_date = datetime.now().isoformat(timespec='milliseconds') + 'Z'
-page =1
-limit = 1000
-all_events_metadata=[]
-complex_columns = ['behaviors','coachingSessionNotes','eventNotes','notes', 'reviewNotes'] 
-table_name = f"bronze.lytx_video_eventsWithMetadata"
-
-
-#check if the delta table exists to determine the start date  for fetching data
-if spark.catalog.tableExists(table_name):
-    df_table = spark.table(table_name)#Reference the delta table
-
-    #aggregate to find the maximum value of tg_updated column, which will represent the most update time
-    #collect()[0][0] extracts the single value for the max tg_updated column from aggregate results
-    last_update = df_table.agg(F.max("tg_updated")).collect()[0][0]
-    print(f"last update time: {last_update}")
-
-    #convert last_update to iso format will millisecond precision needed by the API
-    #Append Z to indictate UTC timezone
-    start_date = last_update.isoformat(timespec='milliseconds') + 'Z'
-    print(f"start date: {start_date}")
-    print(f"end date: {end_date}")
-else:
-    #else if the delta table or data does not exist, set the start date to 90 days prior to the current date
-    start_date = (datetime.now() - timedelta(days=90)).isoformat(timespec='milliseconds') + 'Z'
-
-#pagination loop to get all the video events metadata
-while True:
-    endpoint =f"/video/safety/eventsWithMetadata?from={start_date}&to={end_date}&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
-    response,response_data = lytx_get_repoonse_from_event_api(endpoint)
-    status_code = response.status_code
-    if response_data is None:
-        print(f" recieved 204, No Content on page {page}, Stopping Pagination")
-        break
-    if status_code == 200 and response_data:
-        print(f"Processing page{page}, with {len(response_data)} records")
-        all_events_metadata.extend(response_data)
+def get_holman_api_response(token, endpoint):
+    base_url = "https://customer-experience-api.arifleet.com/v1/"
+    url = base_url + endpoint
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    headers['Authorization'] = f"Bearer {token}"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 204:
+        print(f" Recieved 204, No Content from the API.")
+        return response, None
+    if response.status_code == 200:
+        response_data = response.json()
+        return response, response_data
     else:
-        break
-    page +=1 #increment the page number by 1
-print("Pagination completed")
+        raise Exception("Failed:", response.status_code, response.text)
 
-#convert the data to dataframe, add timestamps columns and perform an upsert operation to the table using the upsert_data function
-df = spark.createDataFrame(all_events_metadata) 
-current_time = F.current_timestamp()
-df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
-upsert_data(df,table_name,current_time,['behaviors','coachingSessionNotes','eventNotes','notes', 'reviewNotes'],'id',endpoint)
+def fetch_Holman_code_data(data_type, code_key, data_key):
+    data_list = []
+    for code in range(1,3):
+        print(f"Fetching data from endpoint code={code}")
+        page = 1
+        while True:
+            print(f"Fetching page {page} of data from endpoint code={code}")
+            endpoint = f"{data_type}?{code_key}={code}&pageNumber={page}"
+            response, response_data = get_holman_api_response(token, endpoint)
+            if data_key not in response_data or not response_data[data_key]:
+                print(f"No more records on page {page}, Stopping Pagination")
+                break
+            data_list.extend(response_data[data_key])
+            if int(response_data['pageNumber']) >= int(response_data['totalPages']):
+                break
+            page +=1
+    return data_list
+
+fetch_violation_data = fetch_Holman_code_data(data_type="violation", code_key="violationDateCode", data_key="violations")
+fetch_billing_data = fetch_Holman_code_data(data_type="billing", code_key="billingTypeCode", data_key="billing")
+fetch_fuels_data = fetch_Holman_code_data(data_type="fuels", code_key="transDateCode", data_key="us")
