@@ -1,43 +1,63 @@
 [CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
-
-
-def fetch_events_meta_data():
-    end_date = datetime.now().isoformat(timespec='milliseconds') + 'Z'
-    page =1
-    # from_date = "2024-07-01T16:19:58.0000Z"
-    # to_date = "2024-09-30T16:19:58.0000Z"
-    limit = 1000
-    all_events_metadata=[]
-    complex_columns = ['behaviors','coachingSessionNotes','eventNotes','notes', 'reviewNotes'] 
-    table_name = f"bronze.lytx_video_eventsWithMetadata"
-    
-
-    if spark.catalog.tableExists(table_name):
-        df_table = spark.table(table_name)
-        last_update = df_table.agg(F.max("update_time")).collect()[0][0]
-        print(f"last update time: {last_update}")
-        start_date = last_update.isoformat(timespec='milliseconds') + 'Z'
-        print(f"start date: {start_date}")
-        print(f"end date: {end_date}")
-    else:
-        start_date = (datetime.now() - timedelta(days=90)).isoformat(timespec='milliseconds') + 'Z'
-    
-    while True:
-        endpoint =f"/video/safety/eventsWithMetadata?from={start_date}&to={end_date}&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
-        response,response_data = lytx_get_repoonse_from_event_api(endpoint)
-        status_code = response.status_code
-        if response_data is None:
-            print(f" recieved 204, No Content on page {page}, Stopping Pagination")
-            break
-        if status_code == 200 and response_data:
-            print(f"Processing page{page}, with {len(response_data)} records")
-            all_events_metadata.extend(response_data)
-        else:
-            break
-        page +=1
-    print("Pagination completed")
-
-    df = spark.createDataFrame(all_events_metadata) 
-    current_time = F.current_timestamp()
-    df = df.withColumn("insert_time", current_time).withColumn("update_time", current_time)
-    upsert_data(df,table_name,current_time,['behaviors','coachingSessionNotes','eventNotes','notes', 'reviewNotes'],'id',endpoint)
+File <command-310280906946865>, line 6
+      4 code = 2
+      5 page = 1
+----> 6 Holman_Upsert_data(data_type="billing", code_key="billingTypeCode", data_key="billing",table_name=None, primary_key="vehicleNumber")
+File <command-3234459011987704>, line 9, in Holman_Upsert_data(data_type, code_key, data_key, table_name, primary_key)
+      7 print(json.dumps(data_list, indent =2))
+      8 updated_data = replace_null_values(data_list)
+----> 9 df = spark.createDataFrame(data_list)
+     10 display(df)
+File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
+     45 start = time.perf_counter()
+     46 try:
+---> 47     res = func(*args, **kwargs)
+     48     logger.log_success(
+     49         module_name, class_name, function_name, time.perf_counter() - start, signature
+     50     )
+     51     return res
+File /databricks/spark/python/pyspark/sql/session.py:1605, in SparkSession.createDataFrame(self, data, schema, samplingRatio, verifySchema)
+   1600 if has_pandas and isinstance(data, pd.DataFrame):
+   1601     # Create a DataFrame from pandas DataFrame.
+   1602     return super(SparkSession, self).createDataFrame(  # type: ignore[call-overload]
+   1603         data, schema, samplingRatio, verifySchema
+   1604     )
+-> 1605 return self._create_dataframe(
+   1606     data, schema, samplingRatio, verifySchema  # type: ignore[arg-type]
+   1607 )
+File /databricks/spark/python/pyspark/sql/session.py:1662, in SparkSession._create_dataframe(self, data, schema, samplingRatio, verifySchema)
+   1660     rdd, struct = self._createFromRDD(data.map(prepare), schema, samplingRatio)
+   1661 else:
+-> 1662     rdd, struct = self._createFromLocal(map(prepare, data), schema)
+   1663 jrdd = self._jvm.SerDeUtil.toJavaArray(rdd._to_java_object_rdd())
+   1664 jdf = self._jsparkSession.applySchemaToPythonRDD(jrdd.rdd(), struct.json())
+File /databricks/spark/python/pyspark/sql/session.py:1229, in SparkSession._createFromLocal(self, data, schema)
+   1221 def _createFromLocal(
+   1222     self, data: Iterable[Any], schema: Optional[Union[DataType, List[str]]]
+   1223 ) -> Tuple["RDD[Tuple]", StructType]:
+   1224     """
+   1225     Create an RDD for DataFrame from a list or pandas.DataFrame, returns the RDD and schema.
+   1226     This would be broken with table acl enabled as user process does not have permission to
+   1227     write temp files.
+   1228     """
+-> 1229     internal_data, struct = self._wrap_data_schema(data, schema)
+   1230     return self._sc.parallelize(internal_data), struct
+File /databricks/spark/python/pyspark/sql/session.py:1196, in SparkSession._wrap_data_schema(self, data, schema)
+   1193     data = list(data)
+   1195 if schema is None or isinstance(schema, (list, tuple)):
+-> 1196     struct = self._inferSchemaFromList(data, names=schema)
+   1197     converter = _create_converter(struct)
+   1198     tupled_data: Iterable[Tuple] = map(converter, data)
+File /databricks/spark/python/pyspark/sql/session.py:1076, in SparkSession._inferSchemaFromList(self, data, names)
+   1061 schema = reduce(
+   1062     _merge_type,
+   1063     (
+   (...)
+   1073     ),
+   1074 )
+   1075 if _has_nulltype(schema):
+-> 1076     raise PySparkValueError(
+   1077         error_class="CANNOT_DETERMINE_TYPE",
+   1078         message_parameters={},
+   1079     )
+   1080 return schema
