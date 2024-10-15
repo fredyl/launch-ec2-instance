@@ -19,18 +19,20 @@ def upsert_data(df, table_name, current_time, complex_columns=None, primary_key=
         #when data matched update existing data if there are any changes in non_complex columns and columns that are not #primary keys
         delta_table.alias("existing_data") \
             .merge(
-                df.alias("new_data"), F.expr(f"new_data.{primary_key} = existing_data.{primary_key}")
+                df.alias("new_data"), expr(f"new_data.{primary_key} = existing_data.{primary_key}")
             ) \
             .whenMatchedUpdate(
                 condition=" OR ".join([
-                    f"existing_data.{col} != new_data.{col}" for col in df.columns 
-                    if col not in complex_columns and col != primary_key and col != "tg_inserted"
+                    f"existing_data.{col} != new_data.{col}" for col_name in df.columns 
+                    if col_name not in complex_columns and col_name != primary_key and col_name != "tg_inserted"
                 ]),  # Set tg_updated to current timestamp and update other columns from new data
-                set={ "tg_updated": current_time, 
-                    **{col: F.col(f"new_data.{col}") for col in df.columns if col != primary_key and col != "tg_inserted"}}
+                set={ 
+                     "tg_updated": current_time, 
+                    **{col_name: col(f"new_data.{col}") for col_name in df.columns if col_name != primary_key and col_name != "tg_inserted"}
+                    }
             ) \
             .whenNotMatchedInsert(
-                values={**{col: F.col(f"new_data.{col}") for col in df.columns}}
+                values={**{col_name: col(f"new_data.{col}") for col_name in df.columns}}
             ) \
             .execute()
         print(f"Upsert (merge) completed successfully for {table_name}.")
@@ -39,4 +41,4 @@ def upsert_data(df, table_name, current_time, complex_columns=None, primary_key=
     else:
         print(f"Table {table_name} does not exist. Creating new table...")
         df.write.format("delta").mode("overwrite").saveAsTable(table_name)
-        print(f"Table {table_name} created successfully with new data.")Error: [CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
+        print(f"Table {table_name} created successfully with new data.")
