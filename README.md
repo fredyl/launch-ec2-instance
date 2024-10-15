@@ -1,3 +1,6 @@
+[CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
+
+
 def fetch_events_meta_data():
     end_date = datetime.now().isoformat(timespec='milliseconds') + 'Z'
     page =1
