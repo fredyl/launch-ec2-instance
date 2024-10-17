@@ -20,3 +20,5 @@ def fetch_Holman_code_data(data_type, code_key, data_key, code, page_size=100):
 
     save_checkpoint(current_page - 1)
     return all_data
+
+    OSError: [Errno 22] Invalid argument: '/Volumes/dev/bronze/holman_last_page.txt'
