@@ -1,24 +1,11 @@
-def fetch_Holman_code_data(data_type, code_key, data_key, code, page_size=100):
-    token = "your_api_token_here"
-    base_url = "https://api.example.com/data"
-    last_page = get_last_checkpoint()
-    all_data = []
-    more_data = True
-    current_page = last_page + 1
-
-    while more_data:
-        endpoint = f"{base_url}/{data_type}?{code_key}={code}&page={current_page}&pageSize={page_size}"
-        response, response_data = get_holman_api_response(token, endpoint)
-        if response.status_code == 200:
-            data = response_data.get(data_key, [])
-            all_data.extend(data)
-            more_data = len(data) == page_size
-            current_page += 1
-        else:
-            more_data = False
-            print(f"Error fetching data: {response.status_code}")
-
-    save_checkpoint(current_page - 1)
-    return all_data
-
-    OSError: [Errno 22] Invalid argument: '/Volumes/dev/bronze/holman_last_page.txt'
+Exception: ('Failed:', 400, '{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.1","title":"One or more validation errors occurred.","status":400,"traceId":"80003f12-0000-cf00-b63f-84710c7967bb","errors":{"pageNumber":["The value \'{}\' is not valid."]}}')
+File <command-3094085711592474>, line 39
+     37 # for code in range(1,4):
+     38 while True:
+---> 39     data_list = fetch_holman_code_batch_data(data_type, code_key, data_key,code,batch_size=50)
+     40     clean_data_list = replace_null_values(data_list)
+     41     # print(json.dumps(clean_data_list, indent=4))
+File <command-310280906944989>, line 16, in get_holman_api_response(token, endpoint)
+     14     return response, response_data
+     15 else:
+---> 16     raise Exception("Failed:", response.status_code, response.text)
