@@ -1,4 +1,18 @@
 
+
+%sql
+SELECT cast(MAX(LastUpdated) as TIMESTAMP) MLU FROM bronze_vendor.LeadExec
+
+
+
+## Prepare the variables used in the notebook
+key = dbutils.secrets.get(scope="BIHubScope",key="LeadExecKey")
+LID = '271'
+StartDate = _sqldf.first()[0].strftime("%m-%d-%Y %H:%M:%S")
+EndDate = datetime.now().strftime('%m-%d-%Y %H:%M:%S')
+stagingPath = f'/Volumes/{env}/bronze_vendor/leadexec/'
+
+
 ## Print Start/End date so we can easily see it on each run
 print("StartDate:\t", StartDate)
 print("EndDate:\t", EndDate)
@@ -125,4 +139,3 @@ for f in dbutils.fs.ls(stagingPath):
     dbutils.fs.rm(f.path, True)
 
 
-    
