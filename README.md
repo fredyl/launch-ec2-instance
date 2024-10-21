@@ -1,25 +1,27 @@
-def get_lytx_paging_data(endpoint, page, limit, start_date=None, end_date=None):
+def get_lytx_paging_data(endpoint, page, limit, start_date = None, end_date = None):
     '''
-    This function handles the pagination for the lytx API for various endpoints.
+    This function handles the pagination for the lytx api for /video/vehocles and /vehicles/all endpoints
     '''
     all_data = []
-    while True:
-        # Initiating endpoints for pagination
-        if "/vehicles/all" in endpoint:
-            page_endpoint = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
-            process_key = "vehicles"
-        elif "/video/vehicles" in endpoint:
-            page_endpoint = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
-            process_key = "vehicles"
-        elif "/video/events" in endpoint:
-            page_endpoint = f"/video/events?StartDate={start_date}&EndDate={end_date}&PageNumber={page}&PageSize={limit}"
-            process_key = "events"
-        elif "/video/safety/eventsWithMetadata" in endpoint:
-            page_endpoint = f"/video/safety/eventsWithMetadata?from={start_date}&to={end_date}&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
-            process_key = None
-        else:
-            raise Exception(f"Invalid endpoint: {endpoint}")
+    # Initiating endpoints for pagination
+    if "/vehicles/all" in endpoint:
+        base_url = f"/vehicles/all?limit={limit}&page={page}&includeSubgroups=true"
+        process_key = "vehicles"
+    elif "/video/vehicles" in endpoint:
+        base_url = f"/video/vehicles?PageNumber={page}&PageSize={limit}"
+        process_key = "vehicles"
+    elif "/video/events" in endpoint:
+        base_url = f"/video/events?StartDate={start_date}&EndDate={end_date}&PageNumber={page}&PageSize={limit}"
+        process_key = "events"
+    elif "/video/safety/eventsWithMetadata" in endpoint:
+        base_url = f"/video/safety/eventsWithMetadata?from={start_date}&to={end_date}&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
+        process_key = None
+    else:
+        raise Exception(f"Invalid endpoint: {endpoint}")
 
+
+    while True:
+        page_endpoint = base_url
         response = lytx_get_repoonse_from_event_api(page_endpoint)
 
         if response is None or response.status_code == 204:  # response is empty or status code is 204 stop paging
