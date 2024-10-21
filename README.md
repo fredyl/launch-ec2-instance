@@ -1,3 +1,6 @@
+
+AttributeError: 'tuple' object has no attribute 'json'
+
 def get_lytx_paging_data(endpoint, page, limit):
     '''
     This function handles the pagination for the lytx api for /video/vehocles and /vehicles/all endpoints
