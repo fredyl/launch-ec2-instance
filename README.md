@@ -1,27 +1,23 @@
-def replace_null_values(item_list):
-    for item in item_list:
-        for key, value in item.items():
-            if value == "null" or value is None:
-                item[key] = ""
-    return item_list
+def save_checkpoint_file(endpoint_key, page_number):
+    env = "your_environment"  # Define your environment variable
+    checkpoint_file = f"/Volumes/{env}/bronze_vendor/holman_{endpoint_key}.txt"
+    dbutils.fs.put(checkpoint_file, str(page_number), overwrite=True)
+    print(f"Checkpoint File Created: {checkpoint_file}")
 
-
-
-global_checkpoint = {}
-def save_checkpoint(endpoint_key, page_number):
-    global global_checkpoint
-    global_checkpoint[endpoint_key] = page_number
-    print(f"Checkpoint Updated to {page_number}")
 
 
 def get_last_checkpoint(endpoint_key, default=0):
-    global global_checkpoint
-    return global_checkpoint.get(endpoint_key, default)
+    try:
+        checkpoint_file = f"/Volumes/{env}/bronze_vendor/holman_{endpoint_key}.txt"
+        content = dbutils.fs.head(checkpoint_file)
+        return int(content)
+    except Exception as e:
+        print(f"Error fetching checkpoint: {e}")
+        return default
 
 
-    
 
-def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, batch_size=200):
+def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, batch_size=20):
     data_list = []
     endpoint_key = f"Holman_{data_type}_{code_key}_{code}"
     last_page = get_last_checkpoint(endpoint_key, default=1)
@@ -31,7 +27,7 @@ def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, bat
     while True:
         if pages_fetched >= batch_size:
             # Save checkpoint
-            save_checkpoint(endpoint_key, page)
+            save_checkpoint_file(endpoint_key, page)
             print(f"Fetched batch size {batch_size} from {endpoint_key}, saving checkpoint")
             pages_fetched = 0
         
@@ -43,7 +39,7 @@ def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, bat
             print(f"No more records on page {page}, stopping pagination")
             if data_list:
                 return data_list
-            save_checkpoint(endpoint_key, page)
+            save_checkpoint_file(endpoint_key, page)
             break
 
         if response.status_code == 200:
@@ -53,11 +49,14 @@ def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, bat
             pages_fetched += 1
             
             if pages_fetched >= batch_size:
-                save_checkpoint(endpoint_key, page)
+                save_checkpoint_file(endpoint_key, page)
                 return data_list    
         else:
             print(f"Error: {response.status_code} {response.text}")
             break
+
+
+
 
 #define a set of endpoints with corresponding data keys
 holman_coded_endpoints =[
