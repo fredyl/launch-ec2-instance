@@ -107,3 +107,20 @@ for endpoint_config in holman_coded_endpoints:
             print(f"No data found for {data_type}_{data_key}")
             break
 
+
+
+why am I getting only the below response from the output. How will I have all the print statement from def get_holman_code_data_partition_batch(iterator, data_type, code_key, data_key, code, token, batch_size=200):
+
+
+bronze.holman_fuels_us
+Table bronze.holman_fuels_us exists. Performing upsert (merge)...
+Upsert completed for bronze.holman_fuels_us
+bronze.holman_fuels_us
+Table bronze.holman_fuels_us exists. Performing upsert (merge)...
+Upsert completed for bronze.holman_fuels_us
+bronze.holman_fuels_us
+Table bronze.holman_fuels_us exists. Performing upsert (merge)...
+Upsert completed for bronze.holman_fuels_us
+bronze.holman_fuels_us
+Table bronze.holman_fuels_us exists. Performing upsert (merge)...
+
