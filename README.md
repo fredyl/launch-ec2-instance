@@ -37,3 +37,12 @@ def get_holman_code_data_partition_batch(iterator, data_type, code_key, data_key
 
     print(f"Finished processing partition with {len(data_list)} records")
     return iter(data_list)
+
+
+
+{
+    "pageNumber": "24",
+    "totalPages": "23",
+    "us": [],
+    "can": []
+}
