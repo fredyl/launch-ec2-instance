@@ -1,83 +1,40 @@
-import concurrent.futures
-import time
-from datetime import datetime
-
-#define a set of endpoints with corresponding data keys
-holman_coded_endpoints = [
-    {
-        "data_type": "fuels",
-        "code_key": "transDateCode",
-        "data_key": "us",
-        "primary_key": "usRecordID"
-    }
-]
-
-# Function to process each endpoint
-def process_endpoint(endpoint_config, token):
-    data_type = endpoint_config["data_type"]
-    code_key = endpoint_config["code_key"]
-    data_key = endpoint_config["data_key"]
-    primary_key = endpoint_config["primary_key"]
-    code = 1
-    last_page = get_last_checkpoint(f"Holman_{data_type}_{code_key}_{code}", default=1)
+def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, total_pages, batch_size=100):
+    data_list = []
+    endpoint_key = f"Holman_{data_type}_{code_key}_{code}"
+    last_page = get_last_checkpoint(endpoint_key, default=1)
+    page = last_page
+    pages_fetched = 0
     
-    try:
-        total_pages = get_total_ages(data_type, code_key, data_key, code, token, batch_size=100)
-        print(f"Total Pages: {total_pages}")
-    except ValueError as e:
-        print(f"Error: {e}")
-        return
-
-    start_time = datetime.now()  # Start timing here
-    print(f"start_time: {start_time}")
-
-    max_workers = 10
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_page = {
-            executor.submit(fetch_holman_code_batch_data, data_type, code_key, data_key, code, token, page): page
-            for page in range(last_page, total_pages + 1)
-        }
+    while page <= total_pages:
+        if pages_fetched >= batch_size:
+            # Save checkpoint
+            save_checkpoint(endpoint_key, page)
+            print(f"Fetched batch size {batch_size} from {endpoint_key}, saving checkpoint")
+            return data_list  # Return the data list after fetching a batch
         
-        for future in concurrent.futures.as_completed(future_to_page):
-            page = future_to_page[future]
-            try:
-                data_list = future.result()
-                if data_list:
-                    clean_data_list = replace_null_values(data_list)
-                    Holman_Upsert_data(data_type, data_key, clean_data_list, primary_key)
-                else:
-                    print(f"No data found for {data_type}_{data_key} on page {page}")
-            except Exception as exc:
-                print(f"Page {page} generated an exception: {exc}")
+        print(f"Fetching page {page} of data from {endpoint_key}")
+        endpoint = f"{data_type}?{code_key}={code}&pageNumber={page}"
+        response, response_data = get_holman_api_response(token, endpoint)
+        
+        if not response_data.get(data_key):
+            print(f"No more records on page {page}, stopping pagination")
+            if data_list:
+                save_checkpoint(endpoint_key, page)
+        break
 
-    end_time = datetime.now()
-    print(f"end_time: {end_time}")
-    elapsed_time = end_time - start_time
-    print(f"Total time taken for {data_type}_{data_key}: {elapsed_time} seconds")
-
-# Iterate through the endpoints to fetch and upsert data in parallel
-for endpoint_config in holman_coded_endpoints:
-    process_endpoint(endpoint_config, token)
-
-# Function to get total pages
-def get_total_ages(data_type, code_key, data_key, code, token, batch_size):
-    first_response = fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, 1)
-    print(f"First response: {first_response}")  # Debug print statement
-    if 'totalPages' in first_response:
-        return int(first_response['totalPages'])
-    else:
-        raise Exception("No totalPages found in first response")
-
-
-
-def get_total_ages(data_type, code_key, data_key, code, token, batch_size):
-    first_response = fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, 1)
-    if 'totalPages' in first_response:
-        return int(first_response['totalPages'])
-    else:
-        raise Exception("No totalPages found in first response")
-
-
-
-Fetching page 24 of data from Holman_fuels_transDateCode_1
-No more records on page 24, stopping pagination
+        if response.status_code == 200:
+            batch_data = response_data[data_key]
+            if not batch_data:
+                print(f"No data found for {data_type}_{data_key} on page {page}, stopping pagination")
+                break
+            print(f"Processing page {page}, with {len(batch_data)} records")
+            data_list.extend(batch_data)
+            page += 1
+            pages_fetched += 1
+        else:
+            print(f"Error: {response.status_code} {response.text}")
+            break
+    
+    # Save checkpoint if loop completes
+    save_checkpoint(endpoint_key, page)
+    return data_list
