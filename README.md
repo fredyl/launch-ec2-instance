@@ -38,3 +38,22 @@ def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, tot
     # Save checkpoint if loop completes
     save_checkpoint(endpoint_key, page)
     return data_list
+
+
+
+data found for fuels_us on page 24, stopping pagination
+Checkpoint Updated to 24
+Fetching page 24 of data from Holman_fuels_transDateCode_1
+No data found for fuels_us on page 202
+No data found for fuels_us on page 24, stopping pagination
+Checkpoint Updated to 24
+Fetching page 24 of data from Holman_fuels_transDateCode_1
+No data found for fuels_us on page 24, stopping pagination
+Checkpoint Updated to 24
+No data found for fuels_us on page 204
+Fetching page 24 of data from Holman_fuels_transDateCode_1
+No data found for fuels_us on page 203
+No data found for fuels_us on page 24, stopping pagination
+Checkpoint Updated to 24
+Fetching page 24 of data from Holman_fuels_transDateCode_1
+No data found for fuels_us on page 205
