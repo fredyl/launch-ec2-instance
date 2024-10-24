@@ -70,5 +70,14 @@ def get_total_ages(data_type, code_key, data_key, code, token, batch_size):
 
 
 
+def get_total_ages(data_type, code_key, data_key, code, token, batch_size):
+    first_response = fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, 1)
+    if 'totalPages' in first_response:
+        return int(first_response['totalPages'])
+    else:
+        raise Exception("No totalPages found in first response")
+
+
+
 Fetching page 24 of data from Holman_fuels_transDateCode_1
 No more records on page 24, stopping pagination
