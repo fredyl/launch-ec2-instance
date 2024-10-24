@@ -1,75 +1,64 @@
-import concurrent.futures
-import time
-from datetime import datetime
+def parallelize_holman_data_fetch(token, data_type, data_key, primary_key, partition_range=100, num_partitions=10):
+    """
+    Function to parallelize data fetching using mapPartitions.
+    This function handles the partitioning and API call distribution.
+    """
+    # Define an RDD to simulate partitioning over a range
+    rdd = spark.sparkContext.parallelize(range(0, partition_range), numSlices=num_partitions)
+
+    # Use mapPartitions to fetch data in parallel across partitions
+    partitioned_data = rdd.mapPartitions(
+        lambda iterator: get_holman_data_partition(iterator, token, data_type, data_key, primary_key)
+    )
+
+    # Collect the fetched data
+    data_list = partitioned_data.collect()
+    return data_list
 
 
+# Keep the Holman_Upsert_data function generic as requested
+def Holman_Upsert_data(data_type, data_key, data_list, primary_key=None):
+    table_name = f"bronze.holman_{data_type}_{data_key}"
+    print(table_name)
 
-#define a set of endpoints with corresponding data keys
-holman_coded_endpoints =[
-    # {
-    #     "data_type" : "billing",
-    #     "code_key": "billingTypeCode",
-    #     "data_key": "billing",
-    #     "primary_key": "invoiceNumber"
-    #  },
-    # {
-    #     "data_type": "fuels",
-    #     "code_key": "transDateCode",
-    #     "data_key": "can",
-    #     "primary_key": "clientVehicleNumber"
-    # },
-    {
-        "data_type": "fuels",
-        "code_key": "transDateCode",
-        "data_key": "us",
-        "primary_key": "usRecordID"
-    },
-    # {
-    #     "data_type" : "violation",
-    #     "code_key": "violationDateCode",
-    #     "data_key": "violations",
-    #     "primary_key": "record_id"
-    # }
-]
+    # Create DataFrame from the data_list
+    df = spark.createDataFrame(data_list)
+    current_time = current_timestamp()
+    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
 
-# Function to process each endpoint
-def process_endpoint(endpoint_config, token):
-    data_type = endpoint_config["data_type"]
-    code_key = endpoint_config["code_key"]
-    data_key = endpoint_config["data_key"]
-    primary_key = endpoint_config["primary_key"]
-    code = 3
-    last_page = get_last_checkpoint(f"Holman_{data_type}_{code_key}_{code}", default=1)
-    total_pages = 2808  # Set this to the actual total number of pages you expect
+    # Check for duplicates based on primary key
+    dup_check_df = df.groupBy(primary_key).count().filter(col("count") > 1)
+    dup_check_df.display()
+    duplicate_id = [row[primary_key] for row in dup_check_df.collect()]
+    df = df.filter(~col(primary_key).isin(duplicate_id))
 
-    start_time = datetime.now()  # Start timing here
-    print(f"start_time:{start_time}")
+    if spark.catalog.tableExists(table_name):
+        print(f"Table {table_name} exists. Performing upsert (merge)...")
+        delta_table = DeltaTable.forName(spark, table_name)
+        delta_table.alias("existing_data") \
+            .merge(
+                df.alias("new_data"), expr(f"new_data.{primary_key} = existing_data.{primary_key}")
+            ) \
+            .whenMatchedUpdate(
+                set={col_name: col(f"new_data.{col_name}") for col_name in df.columns if col_name != primary_key and col_name != "tg_inserted"}
+            ) \
+            .whenNotMatchedInsert(
+                values={col_name: col(f"new_data.{col_name}") for col_name in df.columns}
+            ) \
+            .execute()
+        print(f"Upsert completed for {table_name}")
+    else:
+        print(f"Table does not exist, creating new table {table_name}")
+        df.write.format("delta").saveAsTable(table_name)
 
 
-    max_workers = 10
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_to_page = {
-            executor.submit(fetch_holman_code_batch_data, data_type, code_key, data_key, code, token, page): page
-            for page in range(last_page, total_pages + 1)
-        }
-        
-        for future in concurrent.futures.as_completed(future_to_page):
-            page = future_to_page[future]
-            try:
-                data_list = future.result()
-                if data_list:
-                    clean_data_list = replace_null_values(data_list)
-                    Holman_Upsert_data(data_type, data_key, clean_data_list, primary_key)
-                else:
-                    print(f"No data found for {data_type}_{data_key} on page {page}")
-            except Exception as exc:
-                print(f"Page {page} generated an exception: {exc}")
-
-    end_time = datetime.now()
-    print(f"end_time: {end_time}")
-    elapsed_time = end_time - start_time
-    print(f"Total time taken for {data_type}_{data_key}: {elapsed_time} seconds")
-
-# Iterate through the endpoints to fetch and upsert data in parallel
-for endpoint_config in holman_coded_endpoints:
-    process_endpoint(endpoint_config, token)
+# Fetching and upserting data with parallelization outside the generic function
+for data_type, (data_key, primary_key) in holman_endpoints.items():
+    print(f"Fetching and upserting data for {data_type}_{data_key}")
+    data_list = parallelize_holman_data_fetch(token, data_type, data_key, primary_key)
+    
+    if data_list:
+        # Perform the upsert after data is fetched
+        Holman_Upsert_data(data_type, data_key, data_list, primary_key)
+    else:
+        print(f"No data found for {data_type}_{data_key}")
