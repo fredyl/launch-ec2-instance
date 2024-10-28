@@ -11,7 +11,7 @@ def fetch_holman_code_batch_data(data_type, code_key, data_key, code, token, bat
             # Save checkpoint
             save_checkpoint(endpoint_key, page)
             print(f"Fetched batch size {batch_size} from {endpoint_key}, saving checkpoint")
-            return data_list  # Return the data list after fetching a batch
+            pages_fetched = 0  # Return the data list after fetching a batch
         
         print(f"Fetching page {page} of data from {endpoint_key}")
         endpoint = f"{data_type}?{code_key}={code}&pageNumber={page}"
@@ -56,7 +56,7 @@ def process_endpoint(endpoint_config, token):
     page =1
     for code in range(1,4):
     # while True:
-        data_list = fetch_holman_code_batch_data(data_type, code_key, data_key,token, batch_size=200)
+        data_list = fetch_holman_code_batch_data(data_type, code_key, data_key,code, token, batch_size=200)
         if data_list is not None:
             clean_data_list = replace_null_values(data_list)
         # print(json.dumps(clean_data_list, indent=4))
@@ -67,54 +67,16 @@ def process_endpoint(endpoint_config, token):
             break
 
 
-def process_holman_endpoint_concurrently(token, endpoint,max_workers=4, batch_size =200):
+def process_holman_endpoint_concurrently(endpoint,max_workers=4, batch_size =200):
     for endpoint_config in holman_coded_endpoints:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(fetch_holman_code_batch_data, endpoint_config["data_type"], endpoint_config["code_key"], endpoint_config["data_key"], token, batch_size)
-                ]
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as exc:
-                    print(f"Exception: {exc}")
+            for code in range(1, 4):
+                futures = [
+                    executor.submit(fetch_holman_code_batch_data, endpoint_config["data_type"], endpoint_config["code_key"], endpoint_config["data_key"], code, token, batch_size)
+                    ]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        print(f"Exception: {exc}")
 
-
-#define a set of endpoints with corresponding data keys
-holman_coded_endpoints =[
-    {
-        "data_type" : "billing",
-        "code_key": "billingTypeCode",
-        "data_key": "billing",
-        "primary_key": "invoiceNumber"
-     },
-    # {
-    #     "data_type": "fuels",
-    #     "code_key": "transDateCode",
-    #     "data_key": "can",
-    #     "primary_key": "clientVehicleNumber"
-    # },
-    # {
-    #     "data_type": "fuels",
-    #     "code_key": "transDateCode",
-    #     "data_key": "us",
-    #     "primary_key": "usRecordID"
-    # },
-    {
-        "data_type" : "violation",
-        "code_key": "violationDateCode",
-        "data_key": "violations",
-        "primary_key": "record_id"
-    }
-]
-   
-
-process_holman_endpoint_concurrently(token, holman_coded_endpoints)
-
-
-
-
-Fetching page 1 of data from Holman_billing_billingTypeCode_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlBRDBFRDMzMjYzOTIwODMzREM2RTQ3OTI0QzNBODBCQ0VDRDREODYiLCJuYmYiOjE3MzAxMzAzNzcsImV4cCI6MTczMDEzNzU3NywiaWF0IjoxNzMwMTMwMzc3fQ.-hv02yr9uKZvQHOIkvk5yjuhE7vhroWmuyxRMZuaOQw
-Exception: ('Failed:', 400, '{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.1","title":"One or more validation errors occurred.","status":400,"traceId":"8000048e-0000-c400-b63f-84710c7967bb","errors":{"billingTypeCode":["The value \'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlBRDBFRDMzMjYzOTIwODMzREM2RTQ3OTI0QzNBODBCQ0VDRDREODYiLCJuYmYiOjE3MzAxMzAzNzcsImV4cCI6MTczMDEzNzU3NywiaWF0IjoxNzMwMTMwMzc3fQ.-hv02yr9uKZvQHOIkvk5yjuhE7vhroWmuyxRMZuaOQw\' is not valid."]}}')
-Fetching page 1 of data from Holman_violation_violationDateCode_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlBRDBFRDMzMjYzOTIwODMzREM2RTQ3OTI0QzNBODBCQ0VDRDREODYiLCJuYmYiOjE3MzAxMzAzNzcsImV4cCI6MTczMDEzNzU3NywiaWF0IjoxNzMwMTMwMzc3fQ.-hv02yr9uKZvQHOIkvk5yjuhE7vhroWmuyxRMZuaOQw
-Cancelled
