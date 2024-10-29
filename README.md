@@ -1,1 +1,7 @@
-Data from single URL test: [{'accountCode': '198728', 'amountBilled': '0.44', 'description': ' JE- 1624208 CO 1084489600', 'division': 'SL', 'dueDate': '09/15/2024', 'invoiceNumber': '18039317', 'items': 'TOLL MGMT PROGRAM FEE', 'lesseeCode': '5DA4', 'billLesseeData': '3600', 'odometer': '118291', 'poNumber': '', 'prefix': '5310', 'referenceDate': '07/26/2024', 'invoiceDate': '08/26/2024', 'ataCode': '', 'vehicleNumber': '7R094', 'vendorInvoiceNumber': '', 'vendorName': '', 'lesseeData2': '',
+All this data comes as a single line
+
++--------------------+--------------------+
+|                 url|                data|
++--------------------+--------------------+
+|https://customer-...|[{leaseTerm=84, f...|
++--------------------+--------------------+
