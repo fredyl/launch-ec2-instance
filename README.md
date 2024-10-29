@@ -1,11 +1,11 @@
-# Main execution loop for fetching and processing data
+# Main execution loop with UDF-based parallel data fetching
 for endpoint_config in holman_coded_endpoints:
     data_type = endpoint_config["data_type"]
     code_key = endpoint_config["code_key"]
     data_key = endpoint_config["data_key"]
     primary_key = endpoint_config["primary_key"]
 
-    for code_value in range(1, 4):  # Looping through code_key values 1 to 3
+    for code_value in range(1, 4):  # Loop through code_key values 1 to 3
         print(f"\nChecking data for {data_type} with code key {code_key} = {code_value}")
         
         # Retrieve total pages and skip if no pages are available
@@ -14,23 +14,25 @@ for endpoint_config in holman_coded_endpoints:
             print(f"No pages available for {data_type} with code key {code_key} = {code_value}. Skipping...")
             continue
 
-        # Loop through pages and fetch data
+        # Generate a list of URLs for each page
+        urls = [f"https://customer-experience-api.arifleet.com/v1/{data_type}?{code_key}={code_value}&pageNumber={page}" 
+                for page in range(1, total_pages + 1)]
+        
+        # Create a DataFrame from the URLs list
+        urls_df = spark.createDataFrame([(url,) for url in urls], ["url"])
+        
+        # Apply the UDF to fetch data for each URL
+        results_df = urls_df.withColumn("data", fetch_data_udf(col("url")))
+        
+        # Collect and process each page's data
         data_list = []
-        for page_num in range(1, total_pages + 1):
-            print(f"Fetching page {page_num} for {data_type} with code {code_value}")
-            params = {"pageNumber": page_num}
-            paginated_endpoint = f"{data_type}?{code_key}={code_value}"
-            
-            _, response_data = get_holman_api_response("your_token", paginated_endpoint, params=params)
-            if response_data and data_key in response_data:
-                page_data = response_data.get(data_key, [])
-                if page_data:
+        for row in results_df.collect():
+            if row.data:
+                try:
+                    page_data = json.loads(row.data).get(data_key, [])
                     data_list.extend(page_data)
-                    print(f"Fetched {len(page_data)} records from page {page_num}.")
-                else:
-                    print(f"No data found on page {page_num}.")
-            else:
-                print(f"Failed to fetch data on page {page_num} or key '{data_key}' not in response.")
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON response.")
 
         # Upsert data if available
         if data_list:
