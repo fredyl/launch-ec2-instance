@@ -1,8 +1,29 @@
-fetch_data_udf = udf(lambda url: fetch_data_from_url(url), StringType())
-url = "https://customer-experience-api.arifleet.com/v1/billing?billingTypeCode=1&pageNumber=1" 
-data = fetch_data_from_url(url) 
-print("Data from single URL test:", data)
+what is the difference between these two codes
 
+ base_url = "https://customer-experience-api.arifleet.com/v1/"
+    total_pages = get_all_pages(token, data_type, code_key, code_value)
+    if total_pages == 0:
+        raise Exception("No pages found")
 
+    pagination_urls = []
+    loops = (total_pages // batch_size) + 1
+    print(f" loops : {loops}")
 
-Data from single URL test: {"pageNumber":"1","totalPages":"1133","billing":[{"accountCode":"198728","amountBilled":"0.44","description":" JE- 1624208 CO 1084489600","division":"SL","dueDate":"09/15/2024","invoiceNumber":"18039317","items":"TOLL MGMT PROGRAM FEE","lesseeCode":"5DA4","billLesseeData":"3600","odometer":"118291","poNumber":"","prefix":"5310","referenceDate":"07/26/2024","invoiceDate":"08/26/2024","ataCode":"","vehicleNumber":"7R094","vendorInvoiceNumber":"","vendorName":"","lesseeData2":"","assetType":"TRUCK MD","auxData1":"350","auxData10":"DENVER","auxData11":"FAB METALS","auxData12":"175","auxData13":"0","auxData14":"","auxData2":"RESIDENTIAL LAWN MEDIUM","auxData3":"","auxData4":"","auxData5":"0","auxData6":"","auxData7":"ISUZU SHELL","auxData8":"","auxData9":"LAWN","clientVehicleNumber":"7R094","firstName":"BRANCH","leaseTerm":"8
+    for l in range(loops):
+        page = l + 1
+        url = f"{base_url}{data_type}?{code_key}={code_value}"
+        pagination_urls.append({"pageNumber": page, "url": url})
+        # print(pagination_urls)
+
+    return pagination_urls, loops
+
+def generate_paginated_urls(data_key, code_key, code_value,total_pages,batch_size=200):
+    base_url = "https://customer-experience-api.arifleet.com/v1/"
+    pagination_urls = []
+    loops = (total_pages // batch_size) + 1
+    print(f" loops : {loops}")
+    for l in range(loops):
+        for page in range(l * batch_size + 1, min((l + 1) * batch_size + 1, total_pages +1)):
+            url = f"{base_url}{data_type}?{code_key}={code_value}&pageNumber={page}"
+            pagination_urls.append({"pageNumber": page, "url": url})
+    return pagination_urls, loops
