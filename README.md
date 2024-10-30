@@ -1,4 +1,8 @@
+fetch_data_udf = udf(lambda url: fetch_data_from_url(url), StringType())
 
+or 
+
+fetch_data_udf = udf(fetch_data_from_url, StringType())
 
 
 def get_holman_api_response(token, endpoint):
