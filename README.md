@@ -1,3 +1,16 @@
-[PATH_NOT_FOUND] Path does not exist: dbfs:/Volumes/dev/bronze_vendor/holman/data.json. SQLSTATE: 42K03
-File <command-2638019235405315>, line 32
-     30 batch_df = batch_df.withColumn("part", floor(col("pageNumber") / 100)).repartition(num_batches, "part")
+def fetch_data_from_url(url):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f"Bearer {token}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return f"Error: {response.status_code}"
+    
+        chk_path = '/Volumes/{env}/bronze_vendor/holman'
+        with open(chk_path, 'w') as f:
+            f.write(response.text)
+        return chk_path
+    
+check_path = fetch_data_from_url('https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=1')
+print(check_path)
