@@ -1,4 +1,34 @@
+chk_path = '/Volumes/dev/bronze_vendor/holman/data.txt'
 
+
+# Generates paginated URLs based on the total number of pages
+def generate_paginated_urls(data_type,data_key, code_key, code_value,total_pages,batch_size=200):
+    base_url = "https://customer-experience-api.arifleet.com/v1/"
+    pagination_urls = []
+    num_batches = (total_pages // batch_size) + 1
+    print(f" num_batches : {num_batches}")
+    for i in range(num_batches):
+        for page in range(i * batch_size + 1, min((i + 1) * batch_size + 1, total_pages +1)):
+            url = f"{base_url}{data_type}?{code_key}={code_value}&pageNumber={page}"
+            pagination_urls.append({"pageNumber": page, "url": url})
+            # print(pagination_urls)
+    print('len', len(pagination_urls))
+    return pagination_urls, num_batches
+
+
+def fetch_data_from_url(url):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f"Bearer {token}"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return f"Error: {response.status_code}"
+    
+    chk_path = '/Volumes/dev/bronze_vendor/holman/data.txt'
+    with open(chk_path, 'w') as f:
+        f.write(response.text)
+    return chk_path
 
 
 
