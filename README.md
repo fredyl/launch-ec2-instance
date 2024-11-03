@@ -1,26 +1,18 @@
-def fetch_data_from_url(url):
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f"Bearer {token}"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        return f"Error: {response.status_code}"
-    
-        chk_path = '/Volumes/{env}/bronze_vendor/holman'
-        with open(chk_path, 'w') as f:
-            f.write(response.text)
-        return chk_path
-    
-check_path = fetch_data_from_url('https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=1')
-print(check_path)
-
-
-paginations_url = generate_paginated_urls('violation','violations', 'violationDateCode',1, total_pages)
-{"data_type": "violation", "code_key": "violationDateCode", "data_key": "violations", "primary_key": "record_id"},
-print(paginations_url)
-
-
- num_batches : 1
-len 4
-([{'pageNumber': 1, 'url': 'https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=1'}, {'pageNumber': 2, 'url': 'https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=2'}, {'pageNumber': 3, 'url': 'https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=3'}, {'pageNumber': 4, 'url': 'https://customer-experience-api.arifleet.com/v1/violation?violationDateCode=1&pageNumber=4'}], 1)
+[ATTRIBUTE_NOT_SUPPORTED] Attribute `read` is not supported.
+File <command-2638019235405315>, line 33
+     31 result_df = batch_df.withColumn("data", fetch_data_udf(col("url"))).cache()
+     32 batch_df = spark.read.json(f"{chk_path}")
+---> 33 output_df = spark.read.json(result_df.select("data").read.map(lambda x: x.data))
+File /databricks/spark/python/pyspark/sql/dataframe.py:3753, in DataFrame.__getattr__(self, name)
+   3720 """Returns the :class:`Column` denoted by ``name``.
+   3721 
+   3722 .. versionadded:: 1.3.0
+   (...)
+   3750 +---+
+   3751 """
+   3752 if name not in self.columns:
+-> 3753     raise PySparkAttributeError(
+   3754         error_class="ATTRIBUTE_NOT_SUPPORTED", message_parameters={"attr_name": name}
+   3755     )
+   3756 jc = self._jdf.apply(name)
+   3757 return Column(jc)
