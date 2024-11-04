@@ -37,3 +37,7 @@ File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capt
 --> 261     raise converted from None
     262 else:
     263     raise
+
+
+
+Failed to request /ajax-api/2.0/fs/list?path=%2FVolumes%2Fdev%2Fbronze_vendor%2Fholman&page_size=1000: 404 Not Found The directory being accessed is not found.
