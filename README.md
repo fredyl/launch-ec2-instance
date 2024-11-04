@@ -1,89 +1,39 @@
-based on this result it shows all the urls are stored in different volumes with same name.
-how can insert all the urls into volumes with different names or different the volumes as per 
-url name or number allocated 
-
-Checking data for violation with code key violationDateCode = 2
-Received 200, Success from the API.
-Total Pages : 81
- num_batches : 1
-len 81
-Total URLs : 81
-['/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', 
-
-
-def fetch_data_from_url(url, page):
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f"Bearer {token}"
-    }
-    response = requests.get(url, headers=headers)
-    filePath = f'{chk_path}{code_value}_{page}.json'
-    if response.status_code != 200:
-        return f"Error: {response.status_code}"
-    
-    with open(chk_path, 'w') as f:
-        f.write(response.text)
-        
-    return file_path
-
-
-# Generates paginated URLs based on the total number of pages
-def generate_paginated_urls(data_type,data_key, code_key, code_value,total_pages,batch_size=200):
-    base_url = "https://customer-experience-api.arifleet.com/v1/"
-    pagination_urls = []
-    num_batches = (total_pages // batch_size) + 1
-    print(f" num_batches : {num_batches}")
-    for i in range(num_batches):
-        for page in range(i * batch_size + 1, min((i + 1) * batch_size + 1, total_pages +1)):
-            url = f"{base_url}{data_type}?{code_key}={code_value}&pageNumber={page}"
-            pagination_urls.append({"pageNumber": page, "url": url})
-            # print(pagination_urls)
-    print('len', len(pagination_urls))
-    return pagination_urls, num_batches
-
-def get_total_pages(data_type, code_key, code_value):
-    endpoint = f"{data_type}?{code_key}={code_value}"
-    response_data  = get_holman_api_response(token, endpoint)
-    if response_data:
-        return int(response_data.get("totalPages", 1))
-    return 0
-
-fetch_data_udf = udf(fetch_data_from_url, StringType())
-
-
-holman_coded_endpoints = [
-   
-    # {"data_type": "fuels", "code_key": "transDateCode", "data_key": "can", "primary_key": "clientVehicleNumber"},
-   
-    {"data_type": "violation", "code_key": "violationDateCode", "data_key": "violations", "primary_key": "record_id"},
-    # {"data_type": "billing", "code_key": "billingTypeCode", "data_key": "billing", "primary_key": "vehicleNumber"},
-    #  {"data_type": "fuels", "code_key": "transDateCode", "data_key": "us", "primary_key": "usRecordID"},
-]
-
-# Main execution loop for fetching and processing data
-for endpoint_config in holman_coded_endpoints:
-    data_type = endpoint_config["data_type"]
-    code_key = endpoint_config["code_key"]
-    data_key = endpoint_config["data_key"]
-    primary_key = endpoint_config["primary_key"]
-
-    for code_value in range(1, 4):  # Looping through code_key values 1 to 3
-        print(f"\nChecking data for {data_type} with code key {code_key} = {code_value}")
-
-        # Retrieve total pages and skip if no pages are available
-        total_pages = get_total_pages(data_type, code_key, code_value)
-        print(f"Total Pages : {total_pages}")
-        if total_pages == 0:
-            print(f"No pages available for {data_type} with code key {code_key} = {code_value}. Skipping...")
-            continue
-        
-        paginated_urls, num_batches = generate_paginated_urls(data_type,data_key, code_key, code_value,total_pages)
-        print(f"Total URLs : {len(paginated_urls)}")
-        batch_df = spark.createDataFrame(paginated_urls)
-        batch_df = batch_df.withColumn("part", floor(col("pageNumber") / 100)).repartition(num_batches, "part")
-        result_df = batch_df.withColumn("data", fetch_data_udf(col("url"))).cache()
-        
-        batch_df = spark.read.json(f"{chk_path}")
-        file_path = [row.data for row in result_df.select("data").collect()]
-        print(file_path)
-    
+[PATH_NOT_FOUND] Path does not exist: dbfs:/Volumes/dev/bronze_vendor/holman/*.json. SQLSTATE: 42K03
+File <command-2638019235405315>, line 34
+     31 batch_df = batch_df.withColumn("part", floor(col("pageNumber") / 100)).repartition(num_batches, "part")
+     32 result_df = batch_df.withColumn("data", fetch_data_udf(col("url"), col("pageNumber"))).cache()
+---> 34 batch_df = spark.read.json(f"{chk_path}*.json")
+     35 file_path = [row.data for row in result_df.select("data").collect()]
+     36 print(len(file_path))
+File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
+     45 start = time.perf_counter()
+     46 try:
+---> 47     res = func(*args, **kwargs)
+     48     logger.log_success(
+     49         module_name, class_name, function_name, time.perf_counter() - start, signature
+     50     )
+     51     return res
+File /databricks/spark/python/pyspark/sql/readwriter.py:467, in DataFrameReader.json(self, path, schema, primitivesAsString, prefersDecimal, allowComments, allowUnquotedFieldNames, allowSingleQuotes, allowNumericLeadingZero, allowBackslashEscapingAnyCharacter, mode, columnNameOfCorruptRecord, dateFormat, timestampFormat, multiLine, allowUnquotedControlChars, lineSep, samplingRatio, dropFieldIfAllNull, encoding, locale, pathGlobFilter, recursiveFileLookup, modifiedBefore, modifiedAfter, allowNonNumericNumbers)
+    465 if type(path) == list:
+    466     assert self._spark._sc._jvm is not None
+--> 467     return self._df(self._jreader.json(self._spark._sc._jvm.PythonUtils.toSeq(path)))
+    469 if not is_remote_only():
+    470     from pyspark.core.rdd import RDD  # noqa: F401
+File /databricks/spark/python/lib/py4j-0.10.9.7-src.zip/py4j/java_gateway.py:1355, in JavaMember.__call__(self, *args)
+   1349 command = proto.CALL_COMMAND_NAME +\
+   1350     self.command_header +\
+   1351     args_command +\
+   1352     proto.END_COMMAND_PART
+   1354 answer = self.gateway_client.send_command(command)
+-> 1355 return_value = get_return_value(
+   1356     answer, self.gateway_client, self.target_id, self.name)
+   1358 for temp_arg in temp_args:
+   1359     if hasattr(temp_arg, "_detach"):
+File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
+    257 converted = convert_exception(e.java_exception)
+    258 if not isinstance(converted, UnknownException):
+    259     # Hide where the exception came from that shows a non-Pythonic
+    260     # JVM exception message.
+--> 261     raise converted from None
+    262 else:
+    263     raise
