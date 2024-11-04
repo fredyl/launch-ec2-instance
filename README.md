@@ -1,32 +1,9 @@
+AttributeError: 'FileInfo' object has no attribute 'chk_path'
+---------------------------------------------------------------------------
+AttributeError                            Traceback (most recent call last)
+File <command-2638019235405315>, line 91
+     88     print(f"Data upserted for data type {data_type} with code value {code_value}")
+     90 for f in dbutils.fs.ls(chk_path):
+---> 91     dbutils.fs.rm(f.chk_path, True)
 
-  [
-    "115316",
-    "115316",
-    "0.18",
-    "0D11",
-    "RHR0618",
-    "TX",
-    "10/10/2024 10:48:41 PM",
-    "Hardy North - Richey - Richey Road OFF Ramp",
-    "55761590",
-    "1.38",
-    "54DC4W1C7FS803572",
-    "1.2",
-    "TOLLS",
-    "10/3/2024 12:00:00 AM",
-    "Harris County Toll Road A",
-    "1118879775",
-    "TX",
-    "PAID",
-    "10:41",
-    "TOLLS",
-    "99"
-  ],
-  [
-    "122548",
-    "122548",
-    "0.14",
-    "0D11",
-    "AN71ZY",
-    "FL",
-    "10/10/2024 10:48:43 PM",
+AttributeError: 'FileInfo' object has no attribute 'chk_path'
