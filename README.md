@@ -11,20 +11,20 @@ Total URLs : 81
 ['/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', '/Volumes/dev/bronze_vendor/holman/data.json', 
 
 
-def fetch_data_from_url(url):
+def fetch_data_from_url(url, page):
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f"Bearer {token}"
     }
     response = requests.get(url, headers=headers)
+    filePath = f'{chk_path}{code_value}_{page}.json'
     if response.status_code != 200:
         return f"Error: {response.status_code}"
     
-    chk_path = '/Volumes/dev/bronze_vendor/holman/data.json'
     with open(chk_path, 'w') as f:
         f.write(response.text)
-    return chk_path
-
+        
+    return file_path
 
 
 # Generates paginated URLs based on the total number of pages
