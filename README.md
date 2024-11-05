@@ -1,45 +1,60 @@
+from pyspark.sql.functions import col, sum as spark_sum
 
-
-def upsert_data(df, table_name, current_time, complex_columns=[], primary_key="id", endpoint=None):
-    '''
-    Generic Function that performs an upsert
-    '''
+def Holman_Upsert_data(data_type, data_key, data_list, primary_key=None):
     
-    # Setting the value of [] to an empty list if not provided
-    # complex_columns = complex_columns or []
+    table_name = f"bronze.holman_{data_type}_{data_key}"
+    print(table_name)
+    df = spark.createDataFrame(data_list)
+    current_time = current_timestamp()
+    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
+    # Check for duplicates based on primary key
 
-    # Check if primary_key exist in dataframe column. If not raises an exception
-    if primary_key not in df.columns:
-        raise Exception(f"No id column found in data schema for endpoint: {endpoint}")
+    if data_type == 'vehicles':
+        combined_key = "combined_key"
+        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("deliveryDate")))
+        primary_key = combined_key
+    elif data_type == 'maintainance':
+        combined_key = "combined_key"
+        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("invoiceDate")))
+        primary_key = combined_key
+    elif data_type == 'billing':
+        combined_key = "combined_key"
+        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("rental")))
+        primary_key = combined_key
+    else:
+        pass
+    
+    
+    dup_check_df = df.groupBy(primary_key).count().filter(col("count") > 1)
+    dup_check_df.show()
+    duplicate_id = [row[primary_key] for row in dup_check_df.collect()]
+    duplicate_rows_df = df.filter(col(primary_key).isin(duplicate_id)).orderBy(col(primary_key).desc())
+    display(duplicate_rows_df)
+    
+    # duplicate_rows_df = df.filter(col(primary_key).isin(duplicate_id)).orderBy(col(primary_key).desc())
+    # display(duplicate_rows_df)
+    total_duplicates = dup_check_df.agg(spark_sum(col("count").cast("int"))).collect()[0][0]
+    print(f"Total dubs {total_duplicates}")
+    # df = df.dropDuplicates([primary_key])
 
-    if spark.catalog.tableExists(table_name):  # Check if table exists
+
+    if spark.catalog.tableExists(table_name):
         print(f"Table {table_name} exists. Performing upsert (merge)...")
-        delta_table = DeltaTable.forName(spark, table_name)  # Reference the Delta table in the database
-
-        #separate the columns into non_complex and complex columns for update
-        non_complex_columns = [col_name for col_name in df.columns
-                if col_name not in complex_columns and col_name != primary_key and col_name != "tg_inserted"]
-        
-        # Performing merge operation between existing data and new data
-        #defining columns to be updated, when data matched update existing data
+        delta_table = DeltaTable.forName(spark, table_name)
         delta_table.alias("existing_data") \
             .merge(
                 df.alias("new_data"), expr(f"new_data.{primary_key} = existing_data.{primary_key}")
             ) \
             .whenMatchedUpdate(
-                #update only non_complex_columns by comparing values
-                #always update complex_column without comparing value since complex columns are nested data
-                set={ 
-                    **{col_name: col(f"new_data.{col_name}") for col_name in non_complex_columns},
-                    **{col_name: col(f"new_data.{col_name}") for col_name in complex_columns},
-                }
-            ) \
+                condition=" OR ".join([
+                    f"existing_data.{col_name} != new_data.{col_name}" for col_name in df.columns 
+                    if col_name != primary_key and col_name != "tg_inserted"
+                ]),
+                set={
+                     **{col_name: col(f"new_data.{col_name}") for col_name in df.columns if col_name != primary_key and col_name != "tg_inserted"}}) \
             .whenNotMatchedInsertAll() \
             .execute()
-        print(f"Upsert (merge) completed successfully for {table_name}.")
-    
-    #create a new table if table does not exists
+        print(f"Upsert completed for {table_name}")
     else:
-        print(f"Table {table_name} does not exist. Creating new table...")
-        df.write.format("delta").mode("overwrite").saveAsTable(table_name)
-        print(f"Table {table_name} created successfully with new data.")
+        print(f"Table does not exists, creating new table {table_name}")
+        df.write.format("delta").saveAsTable(table_name)
