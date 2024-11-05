@@ -18,3 +18,7 @@ def fetch_data_from_url(url, page, data_type, code_value):
         f.write(response.text)
     
     return filePath
+
+
+https://github.com/user-attachments/assets/6bbc53c6-224c-4822-8c4d-d79f197e4343
+
