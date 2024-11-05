@@ -1,1 +1,15 @@
-["[\"122210\", \"122210\", \"3\", \"0D11\", \"SCP5070\", \"TX\", \"10/10/2024 10:48:09 PM\", \"FM 973/Bloor Rd Ex L02\", \"55758773\", \"4.44\", \"1FDUF4GN3NED46607\", \"1.44\", \"TOLLS\", \"9/30/2024 12:00:00 AM\", \"Texas Turnpike Authority\", \"1118841173\", \"TX\", \"PAID\", \"08:12\", \"TOLLS\", \"99\"]", "[\"120289\", \"120289\", \"0.21\", \"0D11\", \"NTF2499\", \"TX\", \"10/10/2024 10:48:09 PM\", \"183A-LKLNMLSB-02\", \"55758775\", \"1.59\", \"54DC4W1B0LS801469\", \"1.38\", \"TOLLS\", \"9/30/2024 12:00:00 AM\", \"Central Texas Regional Mo\", \"1118841896\", \"TX\", \"PAID\", \"10:26\", \"TOLLS\", \"99\"]", "[\"119488\", \"119488\", \"0.2\", 
+[UNABLE_TO_INFER_SCHEMA] Unable to infer schema for JSON. It must be specified manually. SQLSTATE: 42KD9
+File <command-2638019235405315>, line 42
+     39 result_df = batch_df.withColumn("data", fetch_data_udf(col("url"), col("pageNumber"), lit(data_type), lit(code_value))).cache()
+     40 # display(result_df)
+---> 42 batch_df = spark.read.json(f"{chk_path}")
+     43 file_path = [row.data for row in result_df.select("data").collect()]
+     44 # print(len(file_path))
+File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
+    257 converted = convert_exception(e.java_exception)
+    258 if not isinstance(converted, UnknownException):
+    259     # Hide where the exception came from that shows a non-Pythonic
+    260     # JVM exception message.
+--> 261     raise converted from None
+    262 else:
+    263     raise
