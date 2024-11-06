@@ -77,44 +77,24 @@ else:
 
 
 
-from pyspark.sql.functions import col, sum as spark_sum
-
-def Holman_Upsert_data(data_type, data_key, data_list, primary_key= None):
-    
-    table_name = f"bronze.holman_{data_type}_{data_key}"
-    print(f"table_name : {table_name}")
-    df = spark.createDataFrame(data_list)
-    current_time = current_timestamp()
-    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
-    # display(df)
-    # Check for duplicates based on primary key
-
-    if data_type == 'vehicles':
-        combined_key = "combined_key"
-        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("deliveryDate")))
-        primary_key = combined_key
-    elif data_type == 'maintainance':
-        combined_key = "combined_key"
-        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("invoiceDate")))
-        primary_key = combined_key
-    elif data_type == 'billing':
-        combined_key = "combined_key"
-        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col("record_id")))
-        primary_key = combined_key
-    else:
-        pass
-    
-
-    if spark.catalog.tableExists(table_name):
-        print(f"Table {table_name} exists. Performing upsert (merge)...")
-        delta_table = DeltaTable.forName(spark, table_name)
-        delta_table.alias("existing_data")\
-            .merge(df.alias("new_data"), expr(f"new_data.{primary_key} = existing_data.{primary_key}")) \
-            .whenMatchedUpdate( set={col_name: col(f"new_data.{col_name}") for col_name in df.columns if col_name not in [primary_key, "tg_inserted"]} ) \
-            .whenNotMatchedInsertAll() \
-            .execute()
-           
-        print(f"Upsert completed for {table_name}")
-    else:
-        print(f"Table does not exists, creating new table {table_name}")
-        df.write.format("delta").saveAsTable(table_name)
+[DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE] Cannot perform Merge as multiple source rows matched and attempted to modify the same
+target row in the Delta table in possibly conflicting ways. By SQL semantics of Merge,
+when multiple source rows match on the same target row, the result may be ambiguous
+as it is unclear which source row should be used to update or delete the matching
+target row. You can preprocess the source table to eliminate the possibility of
+multiple matches. Please refer to
+https://docs.microsoft.com/azure/databricks/delta/merge#merge-error SQLSTATE: 21506
+File <command-310280906946883>, line 16
+     14 # print(json.dumps(data_list, indent=4))
+     15 if data_list:
+---> 16     Holman_Upsert_data(data_type, data_key, data_list, primary_key)
+     17 else:
+     18     print(f"No data found for {data_type}_{data_key}")
+File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
+    257 converted = convert_exception(e.java_exception)
+    258 if not isinstance(converted, UnknownException):
+    259     # Hide where the exception came from that shows a non-Pythonic
+    260     # JVM exception message.
+--> 261     raise converted from None
+    262 else:
+    263     raise
