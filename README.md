@@ -1,56 +1,76 @@
-def get_holman_data(token, data_type, data_key,url_ext=None):
-    #Define the endpoint and get the response and oing pagination
-    
-    base_endpoint = f"{data_type}/{delta_url}" if delta_url else data_type
-    limit=200
-    page=1
-    data_list = []
+'''
+Main execution loop for using udf_based parallel execution to fetch processing data
+'''
 
-    #Pagination logic
-    while True:
-        endpoint = f"{base_endpoint}?pageNumber={page}"
-        response_data = get_holman_api_response(token, endpoint)
-        batch_data = response_data.get(data_key, [])
-        if len(batch_data) == 0:
-            print(f"No more records on page {page}, Stopping Pagination")
-            break
-        data_list.extend(batch_data)
-        print(f"Processing page{page}, with {len(batch_data)} records")
-        page +=1
-        
-    print(len(data_list))
-    
-    return data_list
+# list of dictionaries where each dictionary contains the data type, data key, primary key for an endpoint
+holman_coded_endpoints = [
+    {"data_type": "maintenance", "code_key": "billPaidDateCode", "data_key": "maintenance", "primary_key": "clientVehicleNumber"},
+    {"data_type": "violation", "code_key": "violationDateCode", "data_key": "violations", "primary_key": "record_id"},
+    {"data_type": "billing", "code_key": "billingTypeCode", "data_key": "billing", "primary_key": "vehicleNumber"},
+     {"data_type": "fuels", "code_key": "transDateCode", "data_key": "us", "primary_key": "usRecordID"},
+]
 
 
-#define a set of endpoints with corresponding data_type and data_keys for Holman API without code_keys
-holman_endpoints = {
-    "vehicles": ("inventory", "clientVehicleNumber"),
-    "maintenance": ("maintenance", "clientVehicleNumber"),
-    "accidents": ("accident", "clientVehicleNumber"),
-    "odometer": ("odometerHistory", "vin"),
-    "persons": ("person", "contactEmployeeId")
-}
 
-#iterate through the endpoints to fetch and upsert data
-for data_type, (data_key, primary_key) in holman_endpoints.items():
-    upd_endpoints = update_endpoints(data_type)
-    print(f"Processing {data_type}")
+# Main execution loop for fetching and processing data
+for endpoint_config in holman_coded_endpoints:
+    data_type = endpoint_config["data_type"]
+    code_key = endpoint_config["code_key"]
+    data_key = endpoint_config["data_key"]
+    primary_key = endpoint_config["primary_key"]
 
-    if upd_endpoints and upd_endpoints.get("run_all"):
-        data_list = get_holman_data(token, data_type=data_type, data_key=data_key, url_ext=delta_url)
-    elif upd_endpoints and "delta_url" in upd_endpoints:
-        delta_url = upd_endpoints["delta_url"]
-        endpoint = f"{data_type}/{delta_url}"
-        data_list = get_holman_data(token, data_type=data_type, data_key=data_key, url_ext=delta_url)
-    else:
+    # Define the directory path to store the fetched data and create directory is it does not exists
+    d_path = f'/Volumes/{env}/bronze_vendor/holman/{data_type}'
+    dbutils.fs.mkdirs(d_path)
+
+    endpoint_options = update_endpoint(data_type)
+    if endpoint_options in None:
         print(f"Skipping {data_type} endpoint is not defined")
         continue
-    
-    data_list = replace_null_values(data_list)
 
-    if data_list:
-        Holman_Upsert_data(data_type, data_key, data_list, primary_key)
-    else:
-        print(f"No data found for {data_type}")
-print("All data fetched")
+    code_values = [endpoint_options.get("code_value", i) for i in range(1,4) if code_value not in endpoint_options]
+    delta_url = endpoint_options.get("endpoint_options", "")
+
+    for code_value in code_values:  # Looping through code_key values 1 to 3
+
+        print(f"\nChecking data for {data_type} with code key {code_key} = {code_value}")
+
+        # Retrieve total pages and skip if no pages are available
+        total_pages = get_total_pages(data_type, code_key, code_value)
+        print(f"Total Pages : {total_pages}")
+        
+        # Skip if no pages are available
+        if total_pages == 0:
+            print(f"No pages available for {data_type} with code key {code_key} = {code_value}. Skipping...")
+            continue
+        
+        #Generating pagination urls, creating url datafarmes and batching the urls. 
+        #Add part columnto partition the pages into groups of 100
+        #repartition the df based on num_batches and cache the df for faster processing
+        #use udf to fetch the data from the url
+
+        paginated_urls, num_batches = generate_paginated_urls(data_type,data_key, code_key, code_value,total_pages)
+        print(f"Total URLs : {len(paginated_urls)}")
+        batch_df = spark.createDataFrame(paginated_urls)
+        batch_df = batch_df.withColumn("part", floor(col("pageNumber") / 100)).repartition(num_batches, "part")
+        result_df = batch_df.withColumn("data", fetch_data_udf(col("url"), col("pageNumber"), lit(data_type), lit(code_value), lit(d_path))).cache()
+
+        #collect all file paths from result_df and convert to json then dataframe
+        file_path = [row.data for row in result_df.select("data").collect()]
+        o_df = spark.read.json(file_path)
+        json_data = o_df.select(data_key).toJSON().collect()
+        cleaned_data  = [replace_null_values(json.loads(row)) for row in json_data]
+        o_df = spark.createDataFrame([Row(**item) for item in cleaned_data])
+
+
+        #fetching the data from the json dataframe o_df and converting to list
+        data_list = []
+        for row in o_df.collect():
+            if data_key in row and isinstance(row[data_key], list):
+                data_list.extend(row[data_key])
+
+        #Upsert the data to the table
+        Holman_Upsert_data(data_type, data_key,data_list, primary_key)
+        print(f"Data upserted for data type {data_type} with code value {code_value}")
+
+dbutils.fs.rm(d_path, True) #deleting the directory after processing the data
