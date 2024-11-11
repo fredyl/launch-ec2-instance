@@ -1,18 +1,3 @@
-'''
-Main execution loop for using udf_based parallel execution to fetch processing data
-'''
-
-# list of dictionaries where each dictionary contains the data type, data key, primary key for an endpoint
-holman_coded_endpoints = [
-    {"data_type": "maintenance", "code_key": "billPaidDateCode", "data_key": "maintenance", "primary_key": "clientVehicleNumber"},
-    {"data_type": "violation", "code_key": "violationDateCode", "data_key": "violations", "primary_key": "record_id"},
-    {"data_type": "billing", "code_key": "billingTypeCode", "data_key": "billing", "primary_key": "vehicleNumber"},
-     {"data_type": "fuels", "code_key": "transDateCode", "data_key": "us", "primary_key": "usRecordID"},
-]
-
-
-
-# Main execution loop for fetching and processing data
 for endpoint_config in holman_coded_endpoints:
     data_type = endpoint_config["data_type"]
     code_key = endpoint_config["code_key"]
@@ -20,16 +5,17 @@ for endpoint_config in holman_coded_endpoints:
     primary_key = endpoint_config["primary_key"]
 
     # Define the directory path to store the fetched data and create directory is it does not exists
-    d_path = f'/Volumes/{env}/bronze_vendor/holman/{data_type}'
-    dbutils.fs.mkdirs(d_path)
 
-    endpoint_options = update_endpoint(data_type)
-    if endpoint_options in None:
+    endpoint_options = update_endpoints(data_type)
+    if endpoint_options is None:
         print(f"Skipping {data_type} endpoint is not defined")
         continue
 
-    code_values = [endpoint_options.get("code_value", i) for i in range(1,4) if code_value not in endpoint_options]
+    code_values = [endpoint_options.get("code_value", i) for i in range(1,4) if "code_value" not in endpoint_options]
     delta_url = endpoint_options.get("endpoint_options", "")
+
+    d_path = f'/Volumes/{env}/bronze_vendor/holman/{data_type}'
+    dbutils.fs.mkdirs(d_path)
 
     for code_value in code_values:  # Looping through code_key values 1 to 3
 
