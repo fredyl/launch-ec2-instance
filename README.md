@@ -1,101 +1,94 @@
-def get_billing_data():
-    data_type = "billing"
-    data_key = "billing"
-    primary_key = "vehicleNumber"
-    code_key = "billingTypeCode"
-    key_code = "invoiceDateCode"
-    data_list = []
+TypeError: unsupported operand type(s) for -: 'str' and 'datetime.timedelta'
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+File <command-3021351257305334>, line 23
+     21     print(f"end date: {end_date}")
+     22 else:
+---> 23     start_date = (end_date - timedelta(days=90)).date().isoformat()
+     24 #pagination
+     25 all_events = get_lytx_paging_data(endpoint, page, limit, start_date, end_date)
 
-    d_path = f'/Volumes/{env}/bronze_vendor/holman/{data_type}'
-    dbutils.fs.mkdirs(d_path)
+TypeError: unsupported operand type(s) for -: 'str' and 'datetime.timedelta'
+
+
+#Handles video events API with complex columns pagination and upsert
+
+
+end_date = datetime.now().date().isoformat()
+table_name = "bronze.lytx_video_events"
+limit = 100
+page = 1
+all_events=[]
+endpoint = f"/video/events?StartDate={start_date}&EndDate={end_date}&PageNumber={page}&PageSize={limit}"
+ 
+
+#check if the delta table exists to determine the start date  for fetching data
+#aggregate find the maximum value of tg_updated column, which represents most updated time
+#collect()[0][0] extracts the single value for the max tg_updated column from aggregate results
+if spark.catalog.tableExists(table_name): 
+    df_table = spark.table(table_name)
+    last_update = df_table.agg(max("tg_updated")).collect()[0][0]
+    print(f"last update time: {last_update}")
+    start_date = last_update.date().isoformat()     #let the start date be the last update time
+    print(f"start date: {start_date}")
+    print(f"end date: {end_date}")
+else:
+    start_date = (end_date - timedelta(days=90)).date().isoformat()
+#pagination
+all_events = get_lytx_paging_data(endpoint, page, limit, start_date, end_date)
+#convert data to dataframe and upsert to the table
+if all_events:
+    df = spark.createDataFrame(all_events)
+    current_time = current_timestamp()
+    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
+    upsert_data(df,table_name,current_time,['deviceViews'] )
     
-    for code_value in range(1, 4):
-        key_value = 1
-        print(f"\nChecking data for {data_type} with code key {code_key} = {code_value} and {key_code}={key_value}")
+else:
+    print("No new data found")
 
-        total_pages = get_total_pages(data_type, code_key, code_value, key_code, key_value)
-        if total_pages == 0:
-            print(f"No pages available for {data_type} with code key {code_key} = {code_value}. Skipping...")
-            continue
-        print(f"Total Pages : {total_pages}")
 
-        paginated_urls, num_batches = generate_paginated_urls(
-            data_type, data_key, code_key, code_value, total_pages, key_value, key_code
-        )
-        print(f"Total URLs : {len(paginated_urls)}")
 
-        batch_df = spark.createDataFrame(paginated_urls)
-        batch_df = batch_df.withColumn("part", floor(col("pageNumber") / 100)).repartition(num_batches, "part")
-        result_df = batch_df.withColumn(
-            "data", fetch_data_udf(col("url"), col("pageNumber"), lit(data_type), lit(code_value), lit(d_path), lit(key_value))
-        ).cache()
 
-        file_path = [row.data for row in result_df.select("data").collect()]
-        if not file_path:
-            print(f"No Files found for {data_type} with code key {code_key} = {code_value} and key code {key_code}={key_value}.Skipping....")
-            continue
+def upsert_data(df, table_name, current_time, complex_columns=[], primary_key="id", endpoint=None):
+    '''
+    Generic Function that performs an upsert
+    '''
+    
+    # Setting the value of [] to an empty list if not provided
+    # complex_columns = complex_columns or []
 
-        o_df = spark.read.json(file_path)
-        if o_df.rdd.isEmpty():
-            print(f"No data found for {data_type} with code key {code_key} = {code_value} and key code {key_code} = {key_value}")
+    # Check if primary_key exist in dataframe column. If not raises an exception
+    if primary_key not in df.columns:
+        raise Exception(f"No id column found in data schema for endpoint: {endpoint}")
 
-        json_data = o_df.select(data_key).toJSON().collect()
-        cleaned_data = [replace_null_values(json.loads(row)) for row in json_data]
-        o_df = spark.createDataFrame([Row(**item) for item in cleaned_data])
+    if spark.catalog.tableExists(table_name):  # Check if table exists
+        print(f"Table {table_name} exists. Performing upsert (merge)...")
+        delta_table = DeltaTable.forName(spark, table_name)  # Reference the Delta table in the database
 
-        data_list = []
-        for row in o_df.collect():
-            if data_key in row and isinstance(row[data_key], list):
-                data_list.extend(row[data_key])
+        #separate the columns into non_complex and complex columns for update
+        non_complex_columns = [col_name for col_name in df.columns
+                if col_name not in complex_columns and col_name != primary_key and col_name != "tg_inserted"]
         
-        print(f"Total data fetched for {data_type} with code key {code_key} = {code_value} and key code {key_code} = {key_value} is {len(data_list)} ")
-        print(f"Total records accumulated is {len(data_list)} ")
-
-        if data_list:
-            Holman_Upsert_data(data_type, data_key, data_list, primary_key)
-            print(f"Data upserted for data type {data_type} with code value {code_value}")
-        else:
-            print(f"No data fetched")
-
-    dbutils.fs.rm(d_path, True) #deleting the directory after processing the data
-
-
-
-get_billing_data()
-
-
-Py4JJavaError: An error occurred while calling z:org.apache.spark.sql.functions.col.
-: java.lang.NullPointerException
-	at org.apache.spark.sql.Column$$anonfun$$lessinit$greater$1.apply(Column.scala:165)
-	at org.apache.spark.sql.Column$$anonfun$$lessinit$greater$1.apply(Column.scala:163)
-	at org.apache.spark.sql.catalyst.trees.CurrentOrigin$.withOrigin(origin.scala:85)
-	at org.apache.spark.sql.package$.withOrigin(package.scala:118)
-	at org.apache.spark.sql.Column.<init>(Column.scala:163)
-	at org.apache.spark.sql.Column$.apply(Column.scala:42)
-	at org.apache.spark.sql.functions$.col(functions.scala:115)
-	at org.apache.spark.sql.functions.col(functions.scala)
-	at sun.reflect.GeneratedMethodAccessor445.invoke(Unknown Source)
-	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at java.lang.reflect.Method.invoke(Method.java:498)
-	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
-	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:397)
-	at py4j.Gateway.invoke(Gateway.java:306)
-	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
-	at py4j.commands.CallCommand.execute(CallCommand.java:79)
-	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:199)
-	at py4j.ClientServerConnection.run(ClientServerConnection.java:119)
-	at java.lang.Thread.run(Thread.java:750)
-File <command-2690687946717719>, line 64
-     58             print(f"No data fetched")
-     60     dbutils.fs.rm(d_path, True) #deleting the directory after processing the data
----> 64 get_billing_data()
-File /databricks/spark/python/lib/py4j-0.10.9.7-src.zip/py4j/protocol.py:326, in get_return_value(answer, gateway_client, target_id, name)
-    324 value = OUTPUT_CONVERTER[type](answer[2:], gateway_client)
-    325 if answer[1] == REFERENCE_TYPE:
---> 326     raise Py4JJavaError(
-    327         "An error occurred while calling {0}{1}{2}.\n".
-    328         format(target_id, ".", name), value)
-    329 else:
-    330     raise Py4JError(
-    331         "An error occurred while calling {0}{1}{2}. Trace:\n{3}\n".
-    332         format(target_id, ".", name, value))    
+        # Performing merge operation between existing data and new data
+        #defining columns to be updated, when data matched update existing data
+        delta_table.alias("existing_data") \
+            .merge(
+                df.alias("new_data"), expr(f"new_data.{primary_key} = existing_data.{primary_key}")
+            ) \
+            .whenMatchedUpdate(
+                #update only non_complex_columns by comparing values
+                #always update complex_column without comparing value since complex columns are nested data
+                set={ 
+                    **{col_name: col(f"new_data.{col_name}") for col_name in non_complex_columns},
+                    **{col_name: col(f"new_data.{col_name}") for col_name in complex_columns},
+                }
+            ) \
+            .whenNotMatchedInsertAll() \
+            .execute()
+        print(f"Upsert (merge) completed successfully for {table_name}.")
+    
+    #create a new table if table does not exists
+    else:
+        print(f"Table {table_name} does not exist. Creating new table...")
+        df.write.format("delta").mode("overwrite").saveAsTable(table_name)
+        print(f"Table {table_name} created successfully with new data.")
