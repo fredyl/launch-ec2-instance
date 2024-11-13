@@ -1,34 +1,26 @@
-end_date = datetime.now().date()
-table_name = "bronze.lytx_video_events"
-limit = 100
-page = 1
-all_events=[]
+In the current version of Nightly Files, we create a Delta (change) file for vendors of each Mission table each night, and we have history back to 1/1/2022.
 
- 
+The problem with this, is that when we get a NEW vendor, we need to make a full load specifically for that vendor, sometimes multiple times, which is Manual & Time Consuming.
 
-#check if the delta table exists to determine the start date  for fetching data
-#aggregate find the maximum value of tg_updated column, which represents most updated time
-#collect()[0][0] extracts the single value for the max tg_updated column from aggregate results
-if spark.catalog.tableExists(table_name): 
-    df_table = spark.table(table_name)
-    last_update = df_table.agg(max("tg_updated")).collect()[0][0]
-    print(f"last update time: {last_update}")
-    start_date = last_update.date().isoformat()     #let the start date be the last update time
-    print(f"start date: {start_date}")
-    print(f"end date: {end_date}")
-else:
-    start_date = (end_date - timedelta(days=90)).isoformat()
+The Objective of this project is to eliminate the need for these full loads.
+The way we are going to do that is by creating a full load for each table, automatically on the 1st day of each month.
+If we were to complete this objective; When a new vendor comes on, we can tell them were to find the most recent full load, and tell them to ingest the deltas after that.
 
-endpoint = f"/video/events?StartDate={start_date}&EndDate={end_date}&PageNumber={page}&PageSize={limit}"
-
-#pagination
-all_events = get_lytx_paging_data(endpoint, page, limit, start_date, end_date)
-#convert data to dataframe and upsert to the table
-if all_events:
-    df = spark.createDataFrame(all_events)
-    current_time = current_timestamp()
-    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
-    upsert_data(df,table_name,current_time,['deviceViews'] )
-    
-else:
-    print("No new data found")
+So what needs doing?
+Iterate over each of the "Enabled" views as outlined in the Control Table.
+Control Table "{env}.admin.vendornightlyfiles".
+For each of the files, produce an output file for each Year/Month combo.
+This can be managed for you by utilizing partitions.
+The format of the output should match the data found in the current daily deltas.
+Files for today can be found in "/mnt/edhingest2/zonea/missiontables/2024/11/12/{filename}.txt" to be used for comparison.
+Rename each output file to reflect the contents of the data.
+Example: "slsah_202411.txt" for the SLSAH file with data most recently updated in 11/2024 (Based on the XXDATE).
+Put each output file into a folder so all related data is held together.
+Example: "/Volumes/dev/silver/MonthlyFullLoads/slsah/slsah_202411.txt" (Relevant portion bolded & italicized).
+Make the output location CONDITIONAL based on the branch. Dev & UAT Land in Volumes, Prod lands in the Production ADLS location.
+Production location TBD By Blake.
+Do not land test data in Production.
+​Make the system capable of purging the old Full Loads before loading the new full loads.
+Do NOT test this in production without full code review & sign off.
+Purge old deltas based on Retention period TBD by Shane.
+Do NOT test this in production without full code review & sign off.
