@@ -1,26 +1,61 @@
-In the current version of Nightly Files, we create a Delta (change) file for vendors of each Mission table each night, and we have history back to 1/1/2022.
-
-The problem with this, is that when we get a NEW vendor, we need to make a full load specifically for that vendor, sometimes multiple times, which is Manual & Time Consuming.
-
-The Objective of this project is to eliminate the need for these full loads.
-The way we are going to do that is by creating a full load for each table, automatically on the 1st day of each month.
-If we were to complete this objective; When a new vendor comes on, we can tell them were to find the most recent full load, and tell them to ingest the deltas after that.
-
-So what needs doing?
-Iterate over each of the "Enabled" views as outlined in the Control Table.
-Control Table "{env}.admin.vendornightlyfiles".
-For each of the files, produce an output file for each Year/Month combo.
-This can be managed for you by utilizing partitions.
-The format of the output should match the data found in the current daily deltas.
-Files for today can be found in "/mnt/edhingest2/zonea/missiontables/2024/11/12/{filename}.txt" to be used for comparison.
-Rename each output file to reflect the contents of the data.
-Example: "slsah_202411.txt" for the SLSAH file with data most recently updated in 11/2024 (Based on the XXDATE).
-Put each output file into a folder so all related data is held together.
-Example: "/Volumes/dev/silver/MonthlyFullLoads/slsah/slsah_202411.txt" (Relevant portion bolded & italicized).
-Make the output location CONDITIONAL based on the branch. Dev & UAT Land in Volumes, Prod lands in the Production ADLS location.
-Production location TBD By Blake.
-Do not land test data in Production.
-​Make the system capable of purging the old Full Loads before loading the new full loads.
-Do NOT test this in production without full code review & sign off.
-Purge old deltas based on Retention period TBD by Shane.
-Do NOT test this in production without full code review & sign off.
+[CANNOT_DETERMINE_TYPE] Some of types cannot be determined after inferring.
+File <command-310280906947065>, line 37
+     34 # print(json.dumps(clean_data, indent =2))
+     35 # convert the data to dataframe, add timestamps columns and perform an upsert
+     36 if clean_data:
+---> 37     df = spark.createDataFrame(clean_data)
+     38     current_time = current_timestamp()
+     39     df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
+File /databricks/spark/python/pyspark/instrumentation_utils.py:47, in _wrap_function.<locals>.wrapper(*args, **kwargs)
+     45 start = time.perf_counter()
+     46 try:
+---> 47     res = func(*args, **kwargs)
+     48     logger.log_success(
+     49         module_name, class_name, function_name, time.perf_counter() - start, signature
+     50     )
+     51     return res
+File /databricks/spark/python/pyspark/sql/session.py:1605, in SparkSession.createDataFrame(self, data, schema, samplingRatio, verifySchema)
+   1600 if has_pandas and isinstance(data, pd.DataFrame):
+   1601     # Create a DataFrame from pandas DataFrame.
+   1602     return super(SparkSession, self).createDataFrame(  # type: ignore[call-overload]
+   1603         data, schema, samplingRatio, verifySchema
+   1604     )
+-> 1605 return self._create_dataframe(
+   1606     data, schema, samplingRatio, verifySchema  # type: ignore[arg-type]
+   1607 )
+File /databricks/spark/python/pyspark/sql/session.py:1662, in SparkSession._create_dataframe(self, data, schema, samplingRatio, verifySchema)
+   1660     rdd, struct = self._createFromRDD(data.map(prepare), schema, samplingRatio)
+   1661 else:
+-> 1662     rdd, struct = self._createFromLocal(map(prepare, data), schema)
+   1663 jrdd = self._jvm.SerDeUtil.toJavaArray(rdd._to_java_object_rdd())
+   1664 jdf = self._jsparkSession.applySchemaToPythonRDD(jrdd.rdd(), struct.json())
+File /databricks/spark/python/pyspark/sql/session.py:1229, in SparkSession._createFromLocal(self, data, schema)
+   1221 def _createFromLocal(
+   1222     self, data: Iterable[Any], schema: Optional[Union[DataType, List[str]]]
+   1223 ) -> Tuple["RDD[Tuple]", StructType]:
+   1224     """
+   1225     Create an RDD for DataFrame from a list or pandas.DataFrame, returns the RDD and schema.
+   1226     This would be broken with table acl enabled as user process does not have permission to
+   1227     write temp files.
+   1228     """
+-> 1229     internal_data, struct = self._wrap_data_schema(data, schema)
+   1230     return self._sc.parallelize(internal_data), struct
+File /databricks/spark/python/pyspark/sql/session.py:1196, in SparkSession._wrap_data_schema(self, data, schema)
+   1193     data = list(data)
+   1195 if schema is None or isinstance(schema, (list, tuple)):
+-> 1196     struct = self._inferSchemaFromList(data, names=schema)
+   1197     converter = _create_converter(struct)
+   1198     tupled_data: Iterable[Tuple] = map(converter, data)
+File /databricks/spark/python/pyspark/sql/session.py:1076, in SparkSession._inferSchemaFromList(self, data, names)
+   1061 schema = reduce(
+   1062     _merge_type,
+   1063     (
+   (...)
+   1073     ),
+   1074 )
+   1075 if _has_nulltype(schema):
+-> 1076     raise PySparkValueError(
+   1077         error_class="CANNOT_DETERMINE_TYPE",
+   1078         message_parameters={},
+   1079     )
+   1080 return schema
