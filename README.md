@@ -11,18 +11,19 @@ def get_billing_data():
         print(f"Skipping {data_type} endpoint is not defined")
         return
     
-    url_ext = endpoint_options.get("url_ext", "")
+    key_values = [endpoint_options.get("key_value", i) for i in range(1,4) if "key_value" not in endpoint_options]
+
 
     d_path = f'/Volumes/{env}/bronze_vendor/holman/{data_type}'
     dbutils.fs.mkdirs(d_path)
 
     for code_value in range(1, 4):
-        for key_value in range(1, 4):
+        for key_value in key_values:
         # key_value = 3
             print(f"\nChecking data for {data_type} with code key {code_key} = {code_value} and {key_code}={key_value}")
 
             # Retrieve total pages and skip if no pages are available
-            total_pages =  get_total_pages(token, data_type, code_key, code_value, key_code, key_value)
+            total_pages =  get_total_pages( data_type, code_key, code_value, key_code, key_value)
             if total_pages == 0:
                 print(f"No pages available for {data_type} with code key {code_key} = {code_value}. Skipping...")
                 continue
@@ -69,57 +70,4 @@ def get_billing_data():
 
 
 get_billing_data()
-      
-
-
-def update_endpoints(data_type):
-    '''
-    endpoint to use in case data type delta table exists
-    '''
-    table_name = f"bronze.holman_{data_type}"
-    if spark.catalog.tableExists(table_name):
-        if data_type in ["maintenance","violation", "fuels"]:
-            return {"code_value": 1}
-        elif data_type in ["vehicles", "accidents", "odometer"]:
-            return {"delta_url": "delta"}
-        elif data_type in ["persons", "orders"]:
-            return {"run_all": True}
-        elif data_type == "billing":
-            return {"key_code": 1}
-        else:
-            #If table does not exists and data type is given allow data to be loaded, so table will be craated at the upsert level
-            return {"run_all": True}
-
-
-def get_total_pages(data_type, code_key, code_value, key_code, key_value):
-    #calculating total number of pages for the given data type and endpoint
-    if data_type == "billing":
-        endpoint = f"{data_type}?{code_key}={code_value}&{key_code}={key_value}"
-    else:
-        endpoint = f"{data_type}?{code_key}={code_value}"
-    response_data  = get_holman_api_response(token, endpoint)
-    if response_data:
-        return int(response_data.get("totalPages", 1))
-    return 0
-
-# Generates paginated URLs based on the total number of pages  and calculating the number of batches used for parrallel processing
-def generate_paginated_urls(data_type,data_key, code_key, code_value,total_pages,key_value, key_code, batch_size=200):
-    base_url = "https://customer-experience-api.arifleet.com/v1/"
-    pagination_urls = []
-    num_batches = (total_pages // batch_size) + 1
-    print(f" num_batches : {num_batches}")
-
-    #getting urls for each page and appending them to pagination_urls
-    for i in range(num_batches):
-        for page in range(i * batch_size + 1, min((i + 1) * batch_size + 1, total_pages +1)):
-            url = f"{base_url}{data_type}?{code_key}={code_value}&pageNumber={page}"
-            if data_type == "billing" and key_code is not None :
-                url += f"&{key_code}={key_value}"
-            pagination_urls.append({"pageNumber": page, "url": url})
-    print('len', len(pagination_urls))
-    return pagination_urls, num_batches
-
-
-  
-    
       
