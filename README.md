@@ -59,3 +59,120 @@ File /databricks/spark/python/pyspark/sql/session.py:1076, in SparkSession._infe
    1078         message_parameters={},
    1079     )
    1080 return schema
+
+
+
+   #the below codes handes the video events metadata with pagination and upsert
+
+end_date = datetime.now().isoformat(timespec='milliseconds') + 'Z'
+page =1
+limit = 1000
+all_events_metadata=[]
+complex_columns = ['behaviors','coachingSessionNotes','eventNotes','notes', 'reviewNotes'] 
+table_name = "bronze.lytx_video_eventsWithMetadata"
+
+
+#check if the delta table exists to determine the start date  for fetching data
+#aggregate to find the maximum value of tg_updated column, which will represent the most update time
+#collect()[0][0] extracts the single value for the max tg_updated column from aggregate results
+#convert last_update to iso format will millisecond precision needed by the API
+#Append Z to indictate UTC timezone
+if spark.catalog.tableExists(table_name):
+    df_table = spark.table(table_name)#Reference the delta table
+    last_update = df_table.agg(max("tg_updated")).collect()[0][0]
+    print(f"last update time: {last_update}")
+    start_date = last_update.isoformat(timespec='milliseconds') + 'Z'
+    print(f"start date: {start_date}")
+    print(f"end date: {end_date}")
+else:
+    #else if the delta table or data does not exist, set the start date to 90 days prior to the current date
+    start_date = (datetime.now() - timedelta(days=90)).isoformat(timespec='milliseconds') + 'Z'
+
+endpoint = f"/video/safety/eventsWithMetadata?from={start_date}&to={end_date}&dateOption=lastUpdatedDate&sortDirection=desc&sortBy=lastUpdatedDate&includeSubgroups=true&limit={limit}&page={page}"
+
+
+
+#pagination
+all_events_metadata = get_lytx_paging_data(endpoint, page, limit, start_date, end_date)
+clean_data = replace_null_values(all_events_metadata)
+# print(json.dumps(clean_data, indent =2))
+# convert the data to dataframe, add timestamps columns and perform an upsert
+if clean_data:
+    df = spark.createDataFrame(clean_data)
+    current_time = current_timestamp()
+    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
+    upsert_data(df,table_name,current_time,complex_columns,'id',endpoint)
+else:
+    print("No data recieved from API")
+
+
+def replace_null_values(item_list):
+    return [{k: (v if v not in["null", None] else "") for k, v in item.items()} for item in item_list]
+
+
+
+
+    [
+  {
+    "id": "4300ffff-6680-c341-2f93-60a3e15b0000",
+    "customerEventId": "DDRW50132",
+    "eventTriggerId": 26,
+    "eventTriggerSubTypeId": 1026,
+    "eventStatusId": 1,
+    "recordDateUTC": "2024-11-13T22:30:47Z",
+    "recordDateTZ": "CST ",
+    "recordDateUTCOffset": -360,
+    "downloadedDate": "2024-11-13T22:31:24Z",
+    "score": 0,
+    "reviewedDate": " ",
+    "erSerialNumber": "QM00001357",
+    "overDue": 0.0,
+    "vehicleId": "9100ffff-48a9-e663-02b3-60a3e15b0000",
+    "groupId": "5100ffff-60b6-e5cd-08cb-60a3e15b0000",
+    "forwardMax": 0.31,
+    "lateralMax": 0.41,
+    "forwardThreshold": 0.0,
+    "lateralThreshold": 0.0,
+    "shockThreshold": 0.0,
+    "speed": 7.561999999999999,
+    "latitude": 39.547696,
+    "longitude": -105.034098,
+    "heading": 224.3,
+    "driverId": "0000ffff-0000-3a00-f1c1-4fa5892e0000",
+    "coachId": "00000000-0000-0000-0000-000000000000",
+    "coachedDate": "9999-01-01T00:00:00Z",
+    "creationDate": "2024-11-13T22:31:23.9535936Z",
+    "notes": [
+      {
+        "id": "5f00ffff-5bec-ae6e-e3ba-60a3e15b0000",
+        "body": "RSP:|The event was triggered due to the Rolling Stop signal.|",
+        "creationDate": "2024-11-13T22:31:31.2348715Z",
+        "authorUserId": "00000996-0000-0000-0000-000000000000",
+        "firstName": "Backend",
+        "lastName": "Reviewer"
+      }
+    ],
+    "eventNotes": [],
+    "coachingSessionNotes": [],
+    "reviewNotes": [
+      {
+        "id": "5f00ffff-5bec-ae6e-e3ba-60a3e15b0000",
+        "body": "RSP:|The event was triggered due to the Rolling Stop signal.|",
+        "creationDate": "2024-11-13T22:31:31.2348715Z",
+        "authorUserId": "00000996-0000-0000-0000-000000000000",
+        "firstName": "Backend",
+        "lastName": "Reviewer"
+      }
+    ],
+    "behaviors": [],
+    "objectRevision": 4,
+    "revisionDate": "2024-11-13T22:58:19.9734445Z",
+    "coachEmployeeNum": " ",
+    "coachFirstName": "",
+    "coachLastName": "",
+    "driverEmployeeNum": "10173321",
+    "driverFirstName": "Tyler",
+    "driverLastName": "Jesko",
+    "coachingOverdueDate": "9999-01-01T00:00:00Z"
+  },
+  {
