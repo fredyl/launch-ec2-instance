@@ -4,3 +4,4 @@ def get_enabled_views(control_table):
 enabled_views = get_enabled_views(control_table)
 for views in enabled_views:
   print(views['sourceTable'])
+
