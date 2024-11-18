@@ -11,6 +11,7 @@ Use Year and Month columns for partitioning.
 Format filenames to {tablename_YYYYMM}.txt.
 3. Write to Target Directories
 
+
 Based on the environment (Dev, UAT, Prod):
 Dev/UAT: Write to /Volumes/{env}/silver/MonthlyFullLoads/{tablename}/{tablename_YYYYMM}.txt.
 Prod: Write to /mnt/prod/silver/MonthlyFullLoads/{tablename}/{tablename_YYYYMM}.txt.
