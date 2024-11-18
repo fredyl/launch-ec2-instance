@@ -32,7 +32,8 @@ Query data for XXDATE >= 20220101.
 Extract Year and Month from XXDATE.
 Partition data dynamically by Year and Month.
 Define file naming convention:
-Format: {viewname}/{Year}/{Month}/{viewname}.txt.
+Format: {viewna[pseudo.docx](https://github.com/user-attachments/files/17804768/pseudo.docx)
+me}/{Year}/{Month}/{viewname}.txt.
 Create directories dynamically based on the environment.
 Pseudo Code:
 
@@ -116,3 +117,4 @@ Run script in Dev and UAT:
         - No errors in logs
 Output: Fully tested and scheduled script
 
+[pseudo.docx](https://github.com/user-attachments/files/17804769/pseudo.docx)
