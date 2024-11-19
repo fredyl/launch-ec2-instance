@@ -1,20 +1,27 @@
-def update_endpoints(data_type):
-    '''
-    endpoint to use in case data type delta table exists
-    '''
-    #check if table exists
-    table_name = f"bronze.holman_{data_type}"
-
-    #if table exists, check for the data type and return the endpoint for delta url and key value or code value. Used to get the most recent data updated
-    if spark.catalog.tableExists(table_name):
-        if data_type in ["maintenance","violation", "fuels"]:
-            return {"code_value": 1}
-        elif data_type in ["vehicles", "accidents", "odometer"]:
-            return {"delta_url": "delta"}
-        elif data_type == "billing":
-            return {"key_value": 1}
-        elif data_type in ["persons", "orders"]:
-            return {"run_all": True}
+def get_holman_api_response(token, endpoint, retries=3):
+    #getting an API response from the HOLMAN API endpoint and retry if token expired
+    base_url = "https://customer-experience-api.arifleet.com/v1/"
+    url = base_url + endpoint
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f"Bearer {token}"
+    }
+    for attempts in range(retries):
+        response = requests.get(url, headers=headers)
+        if response.status_code == 204:
+            print(f"Received 204, No Content from the API.")
+            return  None
+        elif response.status_code == 200:
+            return response.json()
+        elif response.status_code == 401:
+            print(f"Token expired, refreshing...")
+            token = get_token()
+            time.sleep(5)
+            return get_holman_api_response(token, endpoint, retries=attempts+1)
         else:
-            #If table does not exists and data type is given allow data to be loaded, so table will be craated at the upsert level
-            return {"run_all": True}
+            raise Exception("Failed:", response.status_code, response.text)
+    raise Exception("Max retries reached for token refresh")
+
+
+
+    This wouldn't propagate back to the main token, consider moving this outside of this function, or configure it as a global variable.
