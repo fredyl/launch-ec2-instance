@@ -1,14 +1,20 @@
-def fetch_vendor_data(enabled_views,control_table): 
-  '''
-  Loop through the views and read data from the views and add a column yearmonth to the dataframe
-  '''
+def update_endpoints(data_type):
+    '''
+    endpoint to use in case data type delta table exists
+    '''
+    #check if table exists
+    table_name = f"bronze.holman_{data_type}"
 
-  # enabled_views = spark.table(control_table).filter("enabled = true").select("sourceTable").collect()
-  for view in enabled_views:
-    view_name = view.sourceTable.split('.')[-1]
-
-    data_df = spark.read.format("delta").table(f"prod.gold_vendor_nightly.{view_name}")
-    data_df = data_df.withColumn("YearMonth", (data_df.XXDATE.cast("string").substr(1,6)))
-
-    print(f"Processing {view_name}")
-    display(data_df)
+    #if table exists, check for the data type and return the endpoint for delta url and key value or code value. Used to get the most recent data updated
+    if spark.catalog.tableExists(table_name):
+        if data_type in ["maintenance","violation", "fuels"]:
+            return {"code_value": 1}
+        elif data_type in ["vehicles", "accidents", "odometer"]:
+            return {"delta_url": "delta"}
+        elif data_type == "billing":
+            return {"key_value": 1}
+        elif data_type in ["persons", "orders"]:
+            return {"run_all": True}
+        else:
+            #If table does not exists and data type is given allow data to be loaded, so table will be craated at the upsert level
+            return {"run_all": True}
