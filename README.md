@@ -1,27 +1,22 @@
-def get_holman_api_response(token, endpoint, retries=3):
-    #getting an API response from the HOLMAN API endpoint and retry if token expired
-    base_url = "https://customer-experience-api.arifleet.com/v1/"
-    url = base_url + endpoint
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f"Bearer {token}"
-    }
-    for attempts in range(retries):
-        response = requests.get(url, headers=headers)
-        if response.status_code == 204:
-            print(f"Received 204, No Content from the API.")
-            return  None
-        elif response.status_code == 200:
-            return response.json()
-        elif response.status_code == 401:
-            print(f"Token expired, refreshing...")
-            token = get_token()
-            time.sleep(5)
-            return get_holman_api_response(token, endpoint, retries=attempts+1)
-        else:
-            raise Exception("Failed:", response.status_code, response.text)
-    raise Exception("Max retries reached for token refresh")
+'''
+define a set of endpoint for corresponding data keys, creating a merge key used to match rows between the source df and delta table
+'''
+
+data_type="orders" 
+data_key="orderHistory"
+primary_key="clientVehicleNumber"
+merge_keys= ["clientVehicleNumber", "upfitPoIssueDate","tg_updated"]  
+table_name = f"bronze.holman_{data_type}"
 
 
+upd_endpoints = update_endpoints(data_type)
 
-    This wouldn't propagate back to the main token, consider moving this outside of this function, or configure it as a global variable.
+#
+if upd_endpoints and upd_endpoints.get("run_all"):
+    data_list = get_holman_data(token, data_type=data_type, data_key=data_key)
+
+Holman_Upsert_data(data_type,data_list, primary_key, merge_keys)
+print(f"Data upserted for data type {data_type} with code value {code_value}")
+
+
+[DELTA_MULTIPLE_SOURCE_ROW_MATCHING_TARGET_ROW_IN_MERGE] Cannot perform Merge as multiple source rows matched and attempted to modify the same
