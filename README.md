@@ -5,7 +5,8 @@ def replace_null_values(data_key, default_int=0, default_str="", default_list=[]
     if isinstance(data_key, dict):
         return {k: replace_null_values(v, default_int, default_str, default_list) for k, v in data_key.items()}
     elif isinstance(data_key, list):
-        return [replace_null_values(item, default_int, default_str, default_list) for item in data_key]
+        return [replace_null_values(item, [Monthly_nightly Files.docx](https://github.com/user-attachments/files/17821658/Monthly_nightly.Files.docx)
+default_int, default_str, default_list) for item in data_key]
     elif isinstance(data_key, int):
         return data_key if data_key is not None else default_int
     elif isinstance(data_key, str):
