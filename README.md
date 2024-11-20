@@ -40,3 +40,56 @@ for data_type, (data_key, primary_key) in holman_endpoints.items():
     else:
         print(f"No data found for {data_type}")
 print("All data fetched")
+
+
+def Holman_Upsert_data(data_type, data_list, primary_key= None,merge_keys=None,schema=None):
+    '''
+    Getting dictionary to map data_type used to create a unique key to be used as primary key for data that seems similar
+    and then do an Upsert
+    '''
+    table_name = f"bronze.holman_{data_type}"
+
+    if schema:
+        df = spark.createDataFrame(data_list, schema=schema)
+    else:
+        df = spark.createDataFrame(data_list)
+    current_time = current_timestamp()
+    df = df.withColumn("tg_inserted", current_time).withColumn("tg_updated", current_time)
+
+    #Dictionary to map data_type defined in key_col and columns concatenated
+    key_col = {
+        'vehicles': 'deliveryDate',
+        'maintenance': 'record_id',
+        'accidents': 'record_id',
+        'odometer': 'record_id',
+        'billing': 'record_id',
+    }
+
+    # Check if the data_type is in the dictionary key_col and concatenate columns if it is
+    if data_type in key_col:
+        combined_key = "combined_key"
+        df = df.withColumn(combined_key, concat(col(primary_key), lit("_"), col(key_col[data_type])))
+        primary_key = combined_key
+    
+    #drop duplicate records for persons data_type
+    if data_type == "persons":
+        df = df.dropDuplicates([primary_key])
+    if merge_keys:
+        merge_condition =" AND " .join([f"new_data.{primary_key} = existing_data.{primary_key}" for primary_key in      merge_keys])
+    else:
+        merge_condition = f"new_data.{primary_key} = existing_data.{primary_key}"
+
+    #Upsert logic
+    if spark.catalog.tableExists(table_name):
+        print(f"Table {table_name} exists. Performing upsert (merge)...")
+        delta_table = DeltaTable.forName(spark, table_name)
+        delta_table.alias("existing_data")\
+            .merge(df.alias("new_data"), expr(merge_condition)) \
+            .whenMatchedUpdate( set={col_name: col(f"new_data.{col_name}") for col_name in df.columns if col_name not in [primary_key, "tg_inserted"]} ) \
+            .whenNotMatchedInsertAll() \
+            .execute()
+           
+        print(f"Upsert completed for {table_name}")
+    else:
+        print(f"Table does not exists, creating new table {table_name}")
+        df.write.format("delta").saveAsTable(table_name)
