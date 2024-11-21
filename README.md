@@ -1,11 +1,12 @@
-Text data source supports only a single column, and you have 17 columns.
+ExecutionError: An error occurred while calling o421.mkdirs.
+: com.databricks.backend.daemon.data.filesystem.ReservedPathException: /Volume is a reserved DBFS path. If you need this to be unblocked, please reach out to Databricks Support.
+	at com.databricks.backend.daemon.data.filesystem.MountEntryResolver.createFileSystem(MountEntryResolver.scala:149)
+	at com.databricks.backend.daemon.data.client.DBFSOnUCFileSystemResolverImpl.createFileSystemByMountEntryResolver(DBFSOnUCFileSystemResolverImpl.scala:229)
+
+	... 85 more
 File <command-265156676446858>, line 1
 ----> 1 process_saved_views(control_table)
-File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
-    257 converted = convert_exception(e.java_exception)
-    258 if not isinstance(converted, UnknownException):
-    259     # Hide where the exception came from that shows a non-Pythonic
-    260     # JVM exception message.
---> 261     raise converted from None
-    262 else:
-    263     raise
+File /databricks/python_shell/dbruntime/dbutils.py:158, in prettify_exception_message.<locals>.f_with_exception_handling(*args, **kwargs)
+    156 exc.__context__ = None
+    157 exc.__cause__ = None
+--> 158 raise exc
