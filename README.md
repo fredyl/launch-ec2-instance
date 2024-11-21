@@ -1,4 +1,4 @@
-[UNSUPPORTED_DATA_TYPE_FOR_DATASOURCE] The Text datasource doesn't support the column `NPFSEQ` of the type "DECIMAL(5,0)". SQLSTATE: 0A000
+Text data source supports only a single column, and you have 17 columns.
 File <command-265156676446858>, line 1
 ----> 1 process_saved_views(control_table)
 File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
