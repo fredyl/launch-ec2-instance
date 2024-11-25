@@ -13,7 +13,6 @@ def get_enabled_views(control_table):
   return enabled_views
 
 
-
 def fetch_vendor_data(control_table, base_path): 
   '''
   Loop through the views and read data from the views and add a column yearmonth to the dataframe
