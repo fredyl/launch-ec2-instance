@@ -1,13 +1,27 @@
-[UC_VOLUME_NOT_FOUND] Volume `dev`.`bronze_vendor`.`nightlyfiles_backup` does not exist. Please use 'SHOW VOLUMES' to list available volumes. SQLSTATE: 42704
-File <command-2757515768948675>, line 8
-      5       backup_path = file_path.replace(base_path,f"{base_path}_backup").replace(f".csv",f"_bkup.csv")
-      6       dbutils.fs.mv(file_path, backup_path)
-----> 8 create_backUp_file(base_path,file_paths)
-File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
-    257 converted = convert_exception(e.java_exception)
-    258 if not isinstance(converted, UnknownException):
-    259     # Hide where the exception came from that shows a non-Pythonic
-    260     # JVM exception message.
---> 261     raise converted from None
-    262 else:
-    263     raise
+import os
+
+def rename_files_to_backup(file_paths):
+    '''
+    Rename files in the given file paths to their backup versions.
+    Args:
+        file_paths (list): List of file paths to be renamed.
+
+    Returns:
+        None: Files are renamed in place.
+    '''
+    for file_path in file_paths:
+        # Split the file path into directory and file name
+        directory, file_name = os.path.split(file_path)
+
+        # Modify the file name to append '_backup' before the extension
+        file_name_backup = file_name.replace(".csv", "_backup.csv")
+
+        # Create the full path for the renamed file
+        backup_file_path = os.path.join(directory, file_name_backup)
+
+        try:
+            # Rename the file to the backup version
+            os.rename(file_path, backup_file_path)
+            print(f"Renamed: {file_path} -> {backup_file_path}")
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
