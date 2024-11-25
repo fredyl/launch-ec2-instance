@@ -1,20 +1,20 @@
-def create_backUp_file(file_paths):
-    backup_path = f'/Volumes/dev/bronze_vendor/nightlyfiles_backup'
-    for file_path in file_paths:
-        backup_path = file_path.replace(".csv", "_backup.csv")
-        # Ensure the backup directory exists
-        backup_dir = "/".join(backup_path.split("/")[:-1])
-        dbutils.fs.mkdirs(backup_dir)
-        # Copy the file to the backup location
-        dbutils.fs.mv(file_path, backup_path, recurse=True)
-        print(f"Copied {file_path} to {backup_path}")
-
-# Example usage
-create_backUp_file(file_paths)
-
-
-sql_spark= f"ALTER VOLUME  {env}.bronze_vendor.nightlyfiles RENAME TO {env}.bronze_vendor.nightlyfiles_backup"
-spark.sql(sql_spark)
-
-
-yearmonth = datetime.now().strftime("%Y%m")
+vw_PYPTY_Party_EDH_Org
+vw_OPSPL_EDHvw_SLSTH_ProductTemplates_EDH
+vw_SLSTH_ProductTemplates_EDH
+vw_CTLDS
+vw_CTDMC
+vw_PYBUN_EDH
+vw_CTICG_EDH
+vw_PYCMU_custmobileusage_edh_Ind
+vw_PYCMU_CustMobileUsage_EDH_Org
+vw_CTNPF
+vw_PDWKI_Completion_EDH
+vw_PYCUSX___G_CustomerExt_EDH_Org
+vw_PYWDL_WeatherExceptions_EDH
+vw_pywdl_weatherexceptions2_edh
+vw_pypcc_creditdata_edh
+vw_PYCUS_Org
+vw_premp
+vw_DNCINT___G
+vw_OPPCG
+vw_OPSPL_EDH
