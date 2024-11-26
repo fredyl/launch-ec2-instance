@@ -5,7 +5,31 @@
 
 
 
+def generate_file_path(view_names):
+  file_paths= []
+  for view in view_names:
+    view_names = view.split(".")[-1]
+    file_path = f"{backup_path}/{view_names}/{view_names}_{yearmonth}.csv"
+    file_paths.append(file_path)
+  return file_paths
+file_paths = generate_file_path(view_names)
 
+
+def create_backUp_file(file_paths):
+    for file_path in file_paths:
+        backup_path = file_path.replace(".csv", "_backup.csv")
+        # Ensure the backup directory exists
+        backup_dir = "/".join(backup_path.split("/")[:-1])
+        dbutils.fs.mkdirs(backup_dir)
+        # Copy the file to the backup location
+        dbutils.fs.cp(file_path, backup_path, recurse=True)
+        print(f"Backup path created: {backup_path}")
+# Example usage
+if  main_volume in volume_names:
+    create_backUp_file(file_paths)
+else:
+    print("No backup required")
+    
 
 def get_enabled_views(control_table):
   '''
