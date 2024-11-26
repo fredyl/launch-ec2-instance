@@ -1,20 +1,18 @@
-vw_PYPTY_Party_EDH_Org
-vw_OPSPL_EDHvw_SLSTH_ProductTemplates_EDH
-vw_SLSTH_ProductTemplates_EDH
-vw_CTLDS
-vw_CTDMC
-vw_PYBUN_EDH
-vw_CTICG_EDH
-vw_PYCMU_custmobileusage_edh_Ind
-vw_PYCMU_CustMobileUsage_EDH_Org
-vw_CTNPF
-vw_PDWKI_Completion_EDH
-vw_PYCUSX___G_CustomerExt_EDH_Org
-vw_PYWDL_WeatherExceptions_EDH
-vw_pywdl_weatherexceptions2_edh
-vw_pypcc_creditdata_edh
-vw_PYCUS_Org
-vw_premp
-vw_DNCINT___G
-vw_OPPCG
-vw_OPSPL_EDH
+if prev_month_2:
+    sql_spark= f"""ALTER VOLUME {env}.bronze_vendor.nightlyfiles_{prev_month}_backup RENAME TO {env}.bronze_vendor.nightlyfiles_{prev_month_2}_backup"""
+    spark.sql(sql_spark)
+
+
+[UC_VOLUME_NOT_FOUND] Volume `dev`.`bronze_vendor`.`nightlyfiles_202410_backup` does not exist. Please use 'SHOW VOLUMES' to list available volumes. SQLSTATE: 42704
+File <command-2757515768948960>, line 3
+      1 if prev_month_2:
+      2     sql_spark= f"""ALTER VOLUME {env}.bronze_vendor.nightlyfiles_{prev_month}_backup RENAME TO {env}.bronze_vendor.nightlyfiles_{prev_month_2}_backup"""
+----> 3     spark.sql(sql_spark)
+File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
+    257 converted = convert_exception(e.java_exception)
+    258 if not isinstance(converted, UnknownException):
+    259     # Hide where the exception came from that shows a non-Pythonic
+    260     # JVM exception message.
+--> 261     raise converted from None
+    262 else:
+    263     raise
