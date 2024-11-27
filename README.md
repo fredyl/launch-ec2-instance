@@ -1,10 +1,22 @@
-want the data from the csv to text be in this format
---------------------------------------------------------------------------+
-|ACTID|OPRID|OPRVAR1|OPRIMG1|OPRIMG2|OPRBUNCDP|OPRTRYCDP|OPREMPNOP|OPRACPDTE|OPRFDTE|OPRFTIM|OPRTDTE|OPRTTIM|SAHNUM|SAHCVTNUM|XXDATE|XXTIME|XXFUNC|XXUSER|
+def fetch_vendor_data(view_names, base_path, source_table): 
+  '''
+  Loop through the views and read data from the views and add a column yearmonth to the dataframe
+  '''
+  # enabled_views = get_enabled_views(control_table)
+  dbutils.fs.mkdirs(base_path)
 
-instead of 
+  for view in view_names:
+    view_name = view.split(".")[-1]
+    data_df = spark.read.format("delta").table(f"{source_table}.{view_name}")
+    for column in data_df.columns:
+      data_df = data_df.withColumn(column, data_df[column].cast("string"))
+    file_path_csv = f"{base_path}/{view_name}/{view_name}_{yearmonth}.csv"
+    file_path_txt = file_path_csv.replace(".csv", ".txt")
+    data_df.write.mode("overwrite").format("csv") \
+      .option("header", "true") \
+      .option("delimeter", "|") \
+      .save(file_path_csv) 
+    dbutils.fs.mv(file_path_csv, file_path_txt, recurse=True)
+    print(f"Saved data to {file_path_txt}")
 
-|ICGCOD,ICGDSC,ICGPICGCD,ICGLVL,ICGCD1,ICGCD2,ICGCD3,ICGCD4,ICGCD5,ICGCD6,XXDATE,XXTIME               |
-|LWNWATR,Lawn Watering,EXPLAWN,4,PC,EXPAND,EXPLAWN,LWNWATR,"","",20130202,160100     
-
-want the data to be separated by |
+fetch_vendor_data(view_names, base_path, source_table)
