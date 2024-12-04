@@ -1,15 +1,29 @@
-[UC_VOLUME_NOT_FOUND] Volume `dev`.`gold`.`nightlyfiles_202411_backup` does not exist. Please use 'SHOW VOLUMES' to list available volumes. SQLSTATE: 42704
-File <command-4178529555361027>, line 8
-      5 file_paths = generate_file_path(view_names)
-      7 if main_volume in get_volumes():
-----> 8     create_backup_file(file_paths)
-      9 else:
-     10     print("No backup required")
-File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
-    257 converted = convert_exception(e.java_exception)
-    258 if not isinstance(converted, UnknownException):
-    259     # Hide where the exception came from that shows a non-Pythonic
-    260     # JVM exception message.
---> 261     raise converted from None
-    262 else:
-    263     raise
+control_table = "prod.admin.vendornightlyfiles"
+source_table = "prod.gold_vendor_nightly"
+
+# Get enabled views
+enabled_views = spark.sql(f"SELECT sourceTable FROM {control_table} WHERE enabled = true").collect()
+
+# Generate SQL for each view
+queries = []
+for row in enabled_views:
+    view_name = row["sourceTable"].split(".")[-1]
+    query = f"""
+        SELECT 
+            '{view_name}' AS view_name,
+            COUNT(*) AS row_count
+        FROM 
+            {source_table}.{view_name}
+    """
+    queries.append(query)
+
+# Combine queries with UNION ALL
+final_query = " UNION ALL ".join(queries)
+sorted_query = f"""
+    SELECT * FROM ({final_query}) AS all_views
+    ORDER BY row_count ASC
+"""
+
+# Run the query
+result = spark.sql(sorted_query)
+result.show()
