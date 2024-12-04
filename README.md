@@ -17,3 +17,17 @@ File <command-4178529555361026>, line 26, in <listcomp>(.0)
 ---> 26 smaller_views = [view for view in enabled_views if view_sizes[view] < 1000000]
      27 larger_views = [view for view in enabled_views if view_sizes[view] >= 1000000]
      29 # Process smaller views in parallel
+
+
+
+def get_view_sizes(enabled_views, source_table):
+  '''
+  Fetch the row count for each view for optimized processing
+  '''
+  #Return Dictionares mapping views to row counts
+  view_sizes = {}
+  for view in enabled_views:
+    view_names = view.split(".")[-1]
+    row_count = spark.table(f"{source_table}.{view_names}").count()
+    view_sizes[view_names] = row_count
+  return view_sizes # views based on row count
