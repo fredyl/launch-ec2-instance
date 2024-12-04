@@ -1,8 +1,15 @@
-def get_data_size_with_spark(path):
-    data_df = spark.read.format("delta").load(path)  # Adjust format as needed (e.g., "csv", "parquet")
-    data_size = data_df.rdd.mapPartitions(lambda iter: [sum(len(bytes(str(row))) for row in iter)]).sum()
-    return data_size
-
-# Example usage:
-data_path = "/Volumes/dev/bronze_vendor/nightlyfiles/view_name_202411"
-total_size_bytes = get_data_size_with_spark(data_path)
+[UC_VOLUME_NOT_FOUND] Volume `dev`.`gold`.`nightlyfiles_202411_backup` does not exist. Please use 'SHOW VOLUMES' to list available volumes. SQLSTATE: 42704
+File <command-4178529555361027>, line 8
+      5 file_paths = generate_file_path(view_names)
+      7 if main_volume in get_volumes():
+----> 8     create_backup_file(file_paths)
+      9 else:
+     10     print("No backup required")
+File /databricks/spark/python/pyspark/errors/exceptions/captured.py:261, in capture_sql_exception.<locals>.deco(*a, **kw)
+    257 converted = convert_exception(e.java_exception)
+    258 if not isinstance(converted, UnknownException):
+    259     # Hide where the exception came from that shows a non-Pythonic
+    260     # JVM exception message.
+--> 261     raise converted from None
+    262 else:
+    263     raise
